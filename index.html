@@ -1,0 +1,268 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+    <title>bullishNWC</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <script type="module">
+        import { nwc } from "https://esm.sh/@getalby/sdk@3.7.0";
+
+        let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
+        let currentConnection = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const menuButton = document.getElementById('menu-button');
+            const flyoutMenu = document.getElementById('flyout-menu');
+            const addConnectionButton = document.getElementById('add-connection');
+            const walletUrlInput = document.getElementById('wallet-url');
+            const walletNameInput = document.getElementById('wallet-name');
+            const connectionList = document.getElementById('connection-list');
+            const walletInfo = document.getElementById('wallet-info');
+            const balanceDiv = document.getElementById('balance');
+            const transactionsDiv = document.getElementById('transactions');
+
+            menuButton.addEventListener('click', () => {
+                flyoutMenu.classList.toggle('visible'); // Toggle the visible class
+            });
+
+            addConnectionButton.addEventListener('click', () => {
+                const walletUrl = walletUrlInput.value;
+                const walletName = walletNameInput.value;
+
+                if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
+                    const newConnection = { name: walletName, url: walletUrl };
+                    connections.push(newConnection);
+                    localStorage.setItem('nwc_connections', JSON.stringify(connections)); // Store in local storage
+                    updateConnectionList();
+                    walletUrlInput.value = '';
+                    walletNameInput.value = '';
+                } else {
+                    alert('Please enter both wallet name and URL, and ensure the URL is unique.');
+                }
+            });
+
+            function updateConnectionList() {
+                connectionList.innerHTML = '';
+                connections.forEach(({ name, url }) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${name}`;
+                    li.addEventListener('click', () => {
+                        loadWallet(url);
+                        flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                    });
+                    connectionList.appendChild(li);
+                });
+            }
+
+            function updateConnectionList() {
+                connectionList.innerHTML = '';
+                connections.forEach(({ name, url }, index) => {
+                    const li = document.createElement('li');
+                    li.style.display = 'flex'; // Use flexbox for alignment
+                    li.style.justifyContent = 'space-between'; // Space between name and button
+                    li.style.alignItems = 'center'; // Center items vertically
+
+                    // Create a span for the wallet name
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = name;
+
+                    // Create a delete button
+                    const deleteButton = document.createElement('button');
+                    deleteButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome "x" icon
+                    deleteButton.className = 'delete-button'; // Add a class for styling
+                    deleteButton.addEventListener('click', (event) => {
+                        event.stopPropagation(); // Prevent the click from triggering the li event
+                        deleteConnection(index);
+                    });
+
+                    li.appendChild(nameSpan); // Append the wallet name to the list item
+                    li.appendChild(deleteButton); // Append the delete button to the list item
+                    li.addEventListener('click', () => {
+                        loadWallet(url);
+                        flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                    });
+                    connectionList.appendChild(li);
+                });
+            }
+
+
+            function deleteConnection(index) {
+                // Remove the connection from the array
+                connections.splice(index, 1);
+                // Update local storage
+                localStorage.setItem('nwc_connections', JSON.stringify(connections));
+                // Update the connection list display
+                updateConnectionList();
+            }
+
+            function timeAgo(timestamp) {
+                // Calculate the difference in seconds
+                const seconds = Math.floor(Date.now() / 1000) - timestamp;
+
+                let interval = Math.floor(seconds / 31536000);
+                if (interval > 1) return interval + " years ago";
+                interval = Math.floor(seconds / 2592000);
+                if (interval > 1) return interval + " months ago";
+                interval = Math.floor(seconds / 86400);
+                if (interval > 1) return interval + " days ago";
+                interval = Math.floor(seconds / 3600);
+                if (interval > 1) return interval + " hours ago";
+                interval = Math.floor(seconds / 60);
+                if (interval > 1) return interval + " minutes ago";
+                return seconds < 30 ? "just now" : seconds + " seconds ago";
+            }
+
+            async function loadWallet(url) {
+                const nwcUrl = url;
+                const client = new nwc.NWCClient({
+                    nostrWalletConnectUrl: nwcUrl,
+                });
+
+                // Show loading animation
+                const loadingDiv = document.getElementById('loading');
+                loadingDiv.classList.add('visible');
+                walletInfo.classList.add('hidden'); // Hide wallet info while loading
+
+                try {
+
+                    // Fetch the balance
+                    const balanceResponse = await client.getBalance();
+                    const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
+                    balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
+
+
+                    // Set the wallet name display
+                    const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
+                    document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
+
+                    const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
+
+                    // Fetch the transactions
+                    const transactionsResponse = await client.listTransactions({
+                        from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
+                        until: Math.ceil(new Date().getTime() / 1000),
+                        limit: 30,
+                    });
+
+                    // Clear previous transactions
+                    transactionsDiv.innerHTML = '';
+
+                    // Assuming transactions are in a property called 'transactions'
+                    const transactions = transactionsResponse.transactions;
+
+                    // Check if transactions is an array
+                    if (!Array.isArray(transactions)) {
+                        console.error("Expected transactions to be an array, but got:", transactions);
+                        transactionsDiv.innerHTML = "No transactions found.";
+                        return; // Exit the function if transactions is not an array
+                    }
+
+                    transactions.forEach(tx => {
+                        // Create a div for each transaction
+                        const transactionDiv = document.createElement('div');
+
+                        // Determine the arrow based on the transaction type
+                        const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+
+                        // Format the transaction details
+                        const timeString = timeAgo(tx.created_at); // Get the human-readable time string
+
+                        transactionDiv.innerHTML = `
+        <strong></strong> ${arrow} ${tx.amount / 1000} sats 
+        <span style="float: right;">${timeString}</span> <!-- Align time to the right -->
+        <br>
+        <hr>
+    `;
+                        // Append the transaction div to the transactionsDiv
+                        transactionsDiv.appendChild(transactionDiv);
+                    });
+
+                    // Show the wallet after loading is complete
+                    walletInfo.classList.remove('hidden');
+                    walletInfo.style.display = 'flex';
+                } catch (error) {
+                    console.error("Error loading wallet:", error);
+                    transactionsDiv.innerHTML = "Error loading transactions.";
+                } finally {
+                    // Hide loading animation
+                    loadingDiv.classList.remove('visible');
+                }
+            }  // End loadWallet()
+
+            document.getElementById('send-button').addEventListener('click', sendFunds);
+            document.getElementById('receive-button').addEventListener('click', receiveFunds);
+
+            // Initialize the connection list on page load
+            updateConnectionList();
+        });
+
+        async function sendFunds() {
+            const recipient = prompt("Enter recipient address:");
+            const amount = prompt("Enter amount to send:");
+
+            if (recipient && amount) {
+                try {
+                    const response = await currentConnection.send({ to: recipient, amount: amount });
+                    alert(`Transaction successful: ${response.transactionId}`);
+                    loadWallet(currentConnection.url); // Reload wallet info
+                } catch (error) {
+                    alert(`Error sending funds: ${error.message}`);
+                }
+            }
+        }
+
+        function receiveFunds() {
+            alert(`Your receiving address is: ${currentConnection.getAddress()}`);
+        }
+
+    </script>
+</head>
+
+<body>
+
+    <div id="app">
+        <div class="terminal">
+            <div class="header-container">
+                <h1>bullishNWC</h1>
+                <small>0.0.1</small>
+            </div>
+            <button id="menu-button" class="hamburger">☰</button>
+            <div id="flyout-menu" class="flyout-menu hidden">
+                <h2>Add Connection</h2>
+                <input type="text" id="wallet-name" placeholder="Wallet Name">
+                <input type="text" id="wallet-url" placeholder="Connection string">
+                <button id="add-connection">Add</button>
+                <ul id="connection-list"></ul>
+            </div>
+            <div id="wallet-info" class="hidden">
+                <div id="wallet-name-container">
+                    <strong><span id="wallet-name-display"></span></strong>
+                </div>
+                <div id="balance"></div>
+                <div id="button-container">
+                    <button id="send-button">Send</button>
+                    <button id="receive-button">Receive</button>
+                </div>
+                <h3>Transactions</h3>
+                <div id="transactions-container">
+                    <div id="transactions"></div>
+                </div>
+            </div>
+            <div id="loading" class="hidden">
+                Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,215 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: monospace;
+    background-color: #000;
+    color: #ff9900;
+    padding: 10px;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+#app {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.terminal {
+    padding: 0px;
+    max-width: 600px;
+    width: 100%;
+    height: 100%; 
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column; 
+
+}
+
+.header-container {
+    display: flex;
+    align-items: center;
+}
+
+.header-container h1 {
+    margin: 0; /* Remove default margin */
+}
+
+.header-container small {
+    margin-left: 5px; /* Space between app name and version */
+    margin-bottom: -11px;
+    font-size: 0.8em; /* Smaller font size for version */
+    color: #888; /* Optional: change the color of the version text */
+}
+
+.hidden {
+    display: none;
+}
+
+.flyout-menu {
+    background: #222;
+    padding: 10px;
+    border: 1px solid #ff9900;
+    position: absolute;
+    z-index: 10;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    right: 0px;
+    top: 0;
+    display: none;
+}
+
+.flyout-menu.visible {
+    display: block;
+}
+
+.hamburger {
+    background: #000;
+    border: none;
+    color: #ff9900;
+    font-size: 24px;
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    z-index: 20;
+    padding: 10px;
+    width: auto;
+}
+
+button {
+    background: #ff9900;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    color: #000;
+    width: 100%;
+    margin: 5px 0;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+li {
+    cursor: pointer;
+    padding: 10px;
+}
+
+li:hover {
+    background: #444;
+}
+
+@media (max-width: 600px) {
+    .terminal {
+        padding: 15px;
+    }
+
+    button {
+        padding: 8px;
+    }
+
+    li {
+        padding: 8px;
+    }
+
+    .flyout-menu {
+        width: calc(100% - 20px);
+    }
+}
+
+#wallet-info {
+    display: none;
+    flex-direction: column; /* Stack children vertically */
+    flex: 1; /* Allow this section to grow and take up remaining space */
+    border: 1px solid #ff9900;
+    padding: 15px;
+    border-radius: 0px;
+    background-color: #222;
+    margin-top: 20px; /* Space above the wallet info box */
+    max-height: 100%; /* Adjust for body padding and margin */
+    overflow: hidden; /* Prevent overflow */
+}
+
+#transactions-container {
+    flex: 1; /* Allow this container to grow and take up remaining space */
+    overflow-y: auto; /* Enable vertical scrolling */
+    border: 1px solid #ff9900; /* Optional: Add a border for better visibility */
+    padding: 10px; /* Optional: Add some padding */
+    margin-top: 10px; /* Optional: Add some margin above the container */
+    background-color: #333; /* Optional: Set a background color */
+}
+
+#button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+#button-container button {
+    flex: 1;
+    margin-right: 5px;
+}
+
+#button-container button:last-child {
+    margin-right: 0;
+}
+
+#loading {
+    display: none; /* Hidden by default */
+    color: #ff9900; /* Loading text color */
+    font-size: 14px; /* Font size for loading text */
+    margin-top: 20px; /* Space above the loading text */
+}
+
+#loading.visible {
+    display: block; /* Show when loading */
+}
+
+.dot {
+    animation: bounce 1s infinite; /* Apply bounce animation */
+    display: inline-block; /* Make dots inline-block for spacing */
+}
+
+.dot:nth-child(1) {
+    animation-delay: 0s; /* No delay for the first dot */
+}
+
+.dot:nth-child(2) {
+    animation-delay: 0.2s; /* Delay for the second dot */
+}
+
+.dot:nth-child(3) {
+    animation-delay: 0.4s; /* Delay for the third dot */
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0); /* Start and end at original position */
+    }
+    50% {
+        transform: translateY(-10px); /* Move up by 10px at halfway point */
+    }
+}
+
+.delete-button {
+    display: flex; /* Use flexbox */
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally */
+    background: none;
+    border: none;
+    color: #ff9900; /* Change color as needed */
+    cursor: pointer;
+    font-size: 1.1em; /* Increase the size of the icon */
+    height: 12px; /* Set a height for the button */
+    width: 12px; /* Set a width for the button */
+}
