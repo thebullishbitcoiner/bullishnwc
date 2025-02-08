@@ -129,7 +129,7 @@
                 // Show loading animation
                 const loadingDiv = document.getElementById('loading');
                 loadingDiv.classList.add('visible');
-                walletInfo.classList.add('hidden'); // Hide wallet info while loading
+                walletInfo.style.display = 'none';
 
                 try {
 
@@ -176,12 +176,12 @@
                         const timeString = timeAgo(tx.created_at); // Get the human-readable time string
 
                         transactionDiv.innerHTML = `
-        <strong></strong> ${arrow} ${tx.amount / 1000} sats 
-        <span style="float: right;">${timeString}</span> <!-- Align time to the right -->
-        <br>
-        <hr>
-    `;
-                        // Append the transaction div to the transactionsDiv
+                            <strong></strong> ${arrow} ${tx.amount / 1000} sats 
+                            <span style="float: right;">${timeString}</span>
+                            <br>
+                            <hr style="background-color: #333; height: 2px; border: none;">
+                        `;
+                                            // Append the transaction div to the transactionsDiv
                         transactionsDiv.appendChild(transactionDiv);
                     });
 
@@ -232,7 +232,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.1</small>
+                <small>0.0.2</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
