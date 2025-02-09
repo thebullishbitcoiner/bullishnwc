@@ -28,6 +28,7 @@
             const walletInfo = document.getElementById('wallet-info');
             const balanceDiv = document.getElementById('balance');
             const transactionsDiv = document.getElementById('transactions');
+            const defaultMessageDiv = document.getElementById('default-message');
 
             menuButton.addEventListener('click', () => {
                 flyoutMenu.classList.toggle('visible'); // Toggle the visible class
@@ -51,48 +52,39 @@
 
             function updateConnectionList() {
                 connectionList.innerHTML = '';
-                connections.forEach(({ name, url }) => {
-                    const li = document.createElement('li');
-                    li.textContent = `${name}`;
-                    li.addEventListener('click', () => {
-                        loadWallet(url);
-                        flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                if (connections.length === 0) {
+                    defaultMessageDiv.style.display = 'block'; // Show default message
+                } else {
+                    defaultMessageDiv.style.display = 'none'; // Hide default message
+                    connections.forEach(({ name, url }, index) => {
+                        const li = document.createElement('li');
+                        li.style.display = 'flex'; // Use flexbox for alignment
+                        li.style.justifyContent = 'space-between'; // Space between name and button
+                        li.style.alignItems = 'center'; // Center items vertically
+
+                        // Create a span for the wallet name
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = name;
+
+                        // Create a delete button
+                        const deleteButton = document.createElement('button');
+                        deleteButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome "x" icon
+                        deleteButton.className = 'delete-button'; // Add a class for styling
+                        deleteButton.addEventListener('click', (event) => {
+                            event.stopPropagation(); // Prevent the click from triggering the li event
+                            deleteConnection(index);
+                        });
+
+                        li.appendChild(nameSpan); // Append the wallet name to the list item
+                        li.appendChild(deleteButton); // Append the delete button to the list item
+                        li.addEventListener('click', () => {
+                            loadWallet(url);
+                            flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                        });
+                        connectionList.appendChild(li);
                     });
-                    connectionList.appendChild(li);
-                });
+                }
             }
-
-            function updateConnectionList() {
-                connectionList.innerHTML = '';
-                connections.forEach(({ name, url }, index) => {
-                    const li = document.createElement('li');
-                    li.style.display = 'flex'; // Use flexbox for alignment
-                    li.style.justifyContent = 'space-between'; // Space between name and button
-                    li.style.alignItems = 'center'; // Center items vertically
-
-                    // Create a span for the wallet name
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = name;
-
-                    // Create a delete button
-                    const deleteButton = document.createElement('button');
-                    deleteButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome "x" icon
-                    deleteButton.className = 'delete-button'; // Add a class for styling
-                    deleteButton.addEventListener('click', (event) => {
-                        event.stopPropagation(); // Prevent the click from triggering the li event
-                        deleteConnection(index);
-                    });
-
-                    li.appendChild(nameSpan); // Append the wallet name to the list item
-                    li.appendChild(deleteButton); // Append the delete button to the list item
-                    li.addEventListener('click', () => {
-                        loadWallet(url);
-                        flyoutMenu.classList.remove('visible'); // Close the flyout menu
-                    });
-                    connectionList.appendChild(li);
-                });
-            }
-
 
             function deleteConnection(index) {
                 // Remove the connection from the array
@@ -104,31 +96,31 @@
             }
 
             function timeAgo(timestamp) {
-    // Calculate the difference in seconds
-    const seconds = Math.floor(Date.now() / 1000) - timestamp;
+                // Calculate the difference in seconds
+                const seconds = Math.floor(Date.now() / 1000) - timestamp;
 
-    let interval = Math.floor(seconds / 31536000);
-    if (interval > 1) return interval + " years ago";
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) return interval + " months ago";
-    interval = Math.floor(seconds / 86400);
-    
-    // Check for the specific case of 1 day ago
-    if (interval === 1 && seconds >= 86400 && seconds < 172800) {
-        return "1 day ago";
-    }
-    
-    if (interval > 1) return interval + " days ago";
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) return interval + " hours ago";
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) return interval + " minutes ago";
-    return seconds < 30 ? "just now" : seconds + " seconds ago";
-}
+                let interval = Math.floor(seconds / 31536000);
+                if (interval > 1) return interval + " years ago";
+                interval = Math.floor(seconds / 2592000);
+                if (interval > 1) return interval + " months ago";
+                interval = Math.floor(seconds / 86400);
+
+                // Check for the specific case of 1 day ago
+                if (interval === 1 && seconds >= 86400 && seconds < 172800) {
+                    return "1 day ago";
+                }
+
+                if (interval > 1) return interval + " days ago";
+                interval = Math.floor(seconds / 3600);
+                if (interval > 1) return interval + " hours ago";
+                interval = Math.floor(seconds / 60);
+                if (interval > 1) return interval + " minutes ago";
+                return seconds < 30 ? "just now" : seconds + " seconds ago";
+            }
 
             async function loadWallet(url) {
                 const nwcUrl = url;
-                const client = new nwc.NWCClient({
+                currentConnection = new nwc.NWCClient({
                     nostrWalletConnectUrl: nwcUrl,
                 });
 
@@ -140,7 +132,7 @@
                 try {
 
                     // Fetch the balance
-                    const balanceResponse = await client.getBalance();
+                    const balanceResponse = await currentConnection.getBalance();
                     const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
                     balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
 
@@ -152,7 +144,7 @@
                     const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
                     // Fetch the transactions
-                    const transactionsResponse = await client.listTransactions({
+                    const transactionsResponse = await currentConnection.listTransactions({
                         from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
                         until: Math.ceil(new Date().getTime() / 1000),
                         limit: 30,
@@ -187,7 +179,7 @@
                             <br>
                             <hr style="background-color: #333; height: 2px; border: none;">
                         `;
-                                            // Append the transaction div to the transactionsDiv
+                        // Append the transaction div to the transactionsDiv
                         transactionsDiv.appendChild(transactionDiv);
                     });
 
@@ -211,13 +203,12 @@
         });
 
         async function sendFunds() {
-            const recipient = prompt("Enter recipient address:");
-            const amount = prompt("Enter amount to send:");
+            const invoice = prompt("Enter lightning invoice:");
 
-            if (recipient && amount) {
+            if (invoice) {
                 try {
-                    const response = await currentConnection.send({ to: recipient, amount: amount });
-                    alert(`Transaction successful: ${response.transactionId}`);
+                    const response = await currentConnection.payInvoice({ invoice });
+                    alert(`Transaction successful: ${response.preimage}`);
                     loadWallet(currentConnection.url); // Reload wallet info
                 } catch (error) {
                     alert(`Error sending funds: ${error.message}`);
@@ -238,15 +229,17 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.3</small>
+                <small>0.0.4</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
-                <h2>Add Connection</h2>
-                <input type="text" id="wallet-name" placeholder="Wallet Name">
-                <input type="text" id="wallet-url" placeholder="Connection string">
-                <button id="add-connection">Add</button>
+                <h2>Connections</h2>
                 <ul id="connection-list"></ul>
+                <div class="add-container">
+                    <input type="text" id="wallet-name" placeholder="Name">
+                    <textarea id="wallet-url" placeholder="nostr+walletconnect..." rows="3"></textarea>
+                    <button id="add-connection">Add</button>
+                </div>
             </div>
             <div id="wallet-info" class="hidden">
                 <div id="wallet-name-container">
@@ -264,6 +257,22 @@
             </div>
             <div id="loading" class="hidden">
                 Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+            </div>
+            <div id="default-message" style="display: none; color: #ff9900; margin-top: 21px;">
+                <p>A bullish Nostr Wallet Connect (NWC) wallet aimed at creating a simple, streamlined interface to
+                    manage multiple connections.</p>
+                <p>For the best experience, add this progressive web app (PWA) to your home screen. Here's how to do it
+                    on Android and iOS.</p>
+
+                <h4>Android:</h4>
+                <p>Tap the three-dot menu in the top right corner and select "Add to Home screen."</p>
+
+                <h4>iOS:</h4>
+                <p>Tap the share button (the square with an arrow pointing up) at the bottom of the screen. Scroll down
+                    and select "Add to Home Screen."</p>
+
+                <h4>Get Started</h4>
+                <p>What next? Tap "☰" at the top right to add your first connection.</p>
             </div>
 
         </div>

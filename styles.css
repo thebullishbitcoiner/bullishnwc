@@ -25,10 +25,10 @@ body {
     padding: 0px;
     max-width: 600px;
     width: 100%;
-    height: 100%; 
+    height: 100%;
     border-radius: 5px;
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
 
 }
 
@@ -38,14 +38,18 @@ body {
 }
 
 .header-container h1 {
-    margin: 0; /* Remove default margin */
+    margin: 0;
+    /* Remove default margin */
 }
 
 .header-container small {
-    margin-left: 5px; /* Space between app name and version */
+    margin-left: 5px;
+    /* Space between app name and version */
     margin-bottom: -11px;
-    font-size: 0.8em; /* Smaller font size for version */
-    color: #965a00; /* Optional: change the color of the version text */
+    font-size: 0.8em;
+    /* Smaller font size for version */
+    color: #965a00;
+    /* Optional: change the color of the version text */
 }
 
 .hidden {
@@ -68,6 +72,21 @@ body {
 
 .flyout-menu.visible {
     display: block;
+}
+
+.add-container {
+    display: flex;
+    /* Use flexbox for layout */
+    flex-direction: column;
+    /* Stack items vertically */
+    gap: 5px;
+}
+
+.add-container input,
+.add-container textarea {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
 }
 
 .hamburger {
@@ -129,24 +148,35 @@ li:hover {
 
 #wallet-info {
     display: none;
-    flex-direction: column; /* Stack children vertically */
-    flex: 1; /* Allow this section to grow and take up remaining space */
+    flex-direction: column;
+    /* Stack children vertically */
+    flex: 1;
+    /* Allow this section to grow and take up remaining space */
     border: 1px solid #ff9900;
     padding: 15px;
     border-radius: 0px;
     background-color: #111;
-    margin-top: 20px; /* Space above the wallet info box */
-    max-height: 100%; /* Adjust for body padding and margin */
-    overflow: hidden; /* Prevent overflow */
+    margin-top: 20px;
+    /* Space above the wallet info box */
+    max-height: 100%;
+    /* Adjust for body padding and margin */
+    overflow: hidden;
+    /* Prevent overflow */
 }
 
 #transactions-container {
-    flex: 1; /* Allow this container to grow and take up remaining space */
-    overflow-y: auto; /* Enable vertical scrolling */
-    border: 1px solid #ff9900; /* Optional: Add a border for better visibility */
-    padding: 10px; /* Optional: Add some padding */
-    margin-top: 10px; /* Optional: Add some margin above the container */
-    background-color: #222; /* Optional: Set a background color */
+    flex: 1;
+    /* Allow this container to grow and take up remaining space */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    border: 1px solid #ff9900;
+    /* Optional: Add a border for better visibility */
+    padding: 10px;
+    /* Optional: Add some padding */
+    margin-top: 10px;
+    /* Optional: Add some margin above the container */
+    background-color: #222;
+    /* Optional: Set a background color */
 }
 
 #button-container {
@@ -165,51 +195,73 @@ li:hover {
 }
 
 #loading {
-    display: none; /* Hidden by default */
-    color: #ff9900; /* Loading text color */
-    font-size: 14px; /* Font size for loading text */
-    margin-top: 20px; /* Space above the loading text */
+    display: none;
+    /* Hidden by default */
+    color: #ff9900;
+    /* Loading text color */
+    font-size: 14px;
+    /* Font size for loading text */
+    margin-top: 20px;
+    /* Space above the loading text */
 }
 
 #loading.visible {
-    display: block; /* Show when loading */
+    display: block;
+    /* Show when loading */
 }
 
 .dot {
-    animation: bounce 1s infinite; /* Apply bounce animation */
-    display: inline-block; /* Make dots inline-block for spacing */
+    animation: bounce 1s infinite;
+    /* Apply bounce animation */
+    display: inline-block;
+    /* Make dots inline-block for spacing */
 }
 
 .dot:nth-child(1) {
-    animation-delay: 0s; /* No delay for the first dot */
+    animation-delay: 0s;
+    /* No delay for the first dot */
 }
 
 .dot:nth-child(2) {
-    animation-delay: 0.2s; /* Delay for the second dot */
+    animation-delay: 0.2s;
+    /* Delay for the second dot */
 }
 
 .dot:nth-child(3) {
-    animation-delay: 0.4s; /* Delay for the third dot */
+    animation-delay: 0.4s;
+    /* Delay for the third dot */
 }
 
 @keyframes bounce {
-    0%, 100% {
-        transform: translateY(0); /* Start and end at original position */
+
+    0%,
+    100% {
+        transform: translateY(0);
+        /* Start and end at original position */
     }
+
     50% {
-        transform: translateY(-10px); /* Move up by 10px at halfway point */
+        transform: translateY(-10px);
+        /* Move up by 10px at halfway point */
     }
 }
 
 .delete-button {
-    display: flex; /* Use flexbox */
-    align-items: center; /* Center items vertically */
-    justify-content: center; /* Center items horizontally */
+    display: flex;
+    /* Use flexbox */
+    align-items: center;
+    /* Center items vertically */
+    justify-content: center;
+    /* Center items horizontally */
     background: none;
     border: none;
-    color: #ff9900; /* Change color as needed */
+    color: #ff9900;
+    /* Change color as needed */
     cursor: pointer;
-    font-size: 1.1em; /* Increase the size of the icon */
-    height: 12px; /* Set a height for the button */
-    width: 12px; /* Set a width for the button */
+    font-size: 1.1em;
+    /* Increase the size of the icon */
+    height: 12px;
+    /* Set a height for the button */
+    width: 12px;
+    /* Set a width for the button */
 }
