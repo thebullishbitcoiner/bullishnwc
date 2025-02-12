@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <script type="module">
-        import { nwc } from "https://esm.sh/@getalby/sdk@3.7.0";
+        import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
 
         let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
         let currentConnection = null;
@@ -29,6 +29,64 @@
             const balanceDiv = document.getElementById('balance');
             const transactionsDiv = document.getElementById('transactions');
             const defaultMessageDiv = document.getElementById('default-message');
+
+            // For the info modal
+            const infoButton = document.getElementById('info-button');
+            const infoModal = document.getElementById('info-modal');
+            const closeButton = document.querySelector('.close-button');
+
+            // Load the current connection from localStorage
+            const savedConnectionUrl = localStorage.getItem('current_connection_url');
+            if (savedConnectionUrl) {
+                const savedConnection = connections.find(conn => conn.url === savedConnectionUrl);
+                if (savedConnection) {
+                    loadWallet(savedConnection.url); // Load the saved connection
+                }
+            }
+
+            infoButton.addEventListener('click', async () => {
+                try {
+                    const response = await currentConnection.getInfo();
+
+                    // Get the methods list element
+                    const methodsList = document.getElementById('methods-list');
+                    methodsList.innerHTML = ''; // Clear any existing items
+
+                    // Loop through the response.methods array and create list items
+                    if (Array.isArray(response.methods) && response.methods.length > 0) {
+                        response.methods.forEach(method => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = method; // Set the text content to the method name
+                            methodsList.appendChild(listItem); // Append the list item to the unordered list
+                        });
+                    } else {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = 'No methods available.';
+                        methodsList.appendChild(listItem);
+                    }
+
+                    const walletServiceInfo = await currentConnection.getWalletServiceInfo();
+
+                    infoModal.style.display = 'block';
+                } catch (error) {
+                    console.error("Error fetching connection info:", error);
+                    document.getElementById('connection-info').textContent = "Error fetching connection info.";
+
+                    // Clear methods list in case of error
+                    const methodsList = document.getElementById('methods-list');
+                    methodsList.innerHTML = ''; // Clear any existing items
+                    const listItem = document.createElement('li');
+                    listItem.textContent = 'Error fetching methods.';
+                    methodsList.appendChild(listItem);
+
+                    infoModal.style.display = 'block';
+                }
+            });
+
+            // Close the modal when the close button is clicked
+            closeButton.addEventListener('click', () => {
+                infoModal.style.display = 'none';
+            });
 
             menuButton.addEventListener('click', () => {
                 flyoutMenu.classList.toggle('visible'); // Toggle the visible class
@@ -186,6 +244,9 @@
                     // Show the wallet after loading is complete
                     walletInfo.classList.remove('hidden');
                     walletInfo.style.display = 'flex';
+
+                    // Save the current connection URL to localStorage
+                    localStorage.setItem('current_connection_url', url);
                 } catch (error) {
                     console.error("Error loading wallet:", error);
                     transactionsDiv.innerHTML = "Error loading transactions.";
@@ -216,9 +277,23 @@
             }
         }
 
-        function receiveFunds() {
-            alert(`Your receiving address is: ${currentConnection.getAddress()}`);
+        async function receiveFunds() {
+            const amount = prompt("Enter amount of sats:");
+
+            if (amount) {
+                try {
+                    const response = await currentConnection.makeInvoice({
+                        amount: amount * 1000, // convert to millisats
+                    });
+                    const invoice = response.invoice;
+                    await navigator.clipboard.writeText(invoice);
+                    alert(`Lightning invoice copied to clipboard!`);
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            }
         }
+
 
     </script>
 </head>
@@ -229,11 +304,13 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.4</small>
+                <small>0.0.5</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
-                <h2>Connections</h2>
+                <div class="header-container">
+                    <h1>Connections</h1>
+                </div>
                 <ul id="connection-list"></ul>
                 <div class="add-container">
                     <input type="text" id="wallet-name" placeholder="Name">
@@ -242,8 +319,11 @@
                 </div>
             </div>
             <div id="wallet-info" class="hidden">
-                <div id="wallet-name-container">
+                <div id="wallet-name-container" style="display: flex; align-items: center;">
                     <strong><span id="wallet-name-display"></span></strong>
+                    <button id="info-button" class="info-button">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
                 </div>
                 <div id="balance"></div>
                 <div id="button-container">
@@ -274,6 +354,17 @@
                 <h4>Get Started</h4>
                 <p>What next? Tap "☰" at the top right to add your first connection.</p>
             </div>
+
+            <!-- Modal for Connection Info -->
+            <div id="info-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="close-button">&times;</span>
+                    <h2 style="margin-top: 0px;">Connection Info</h2>
+                    <h4>Available Methods:</h4>
+                    <ul id="methods-list"></ul>
+                </div>
+            </div>
+
 
         </div>
     </div>
