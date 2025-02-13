@@ -27,7 +27,7 @@ body {
     max-width: 600px;
     width: 100%;
     height: 100%;
-    border-radius: 5px;
+    border-radius: 0px;
     display: flex;
     flex-direction: column;
 }
@@ -265,7 +265,7 @@ li:hover {
     margin: 10% auto; /* Center the modal */
     padding: 20px;
     border: 1px solid #ff9900; /* Border color */
-    border-radius: 5px; /* Rounded corners */
+    border-radius: 0px;
     width: 80%; /* Could be more or less, depending on screen size */
     color: #ff9900; /* Text color */
     font-family: monospace; /* Match the font */
@@ -287,7 +287,7 @@ li:hover {
     background: none; /* No background */
     border: none; /* No border */
     color: #ff9900; /* Text color */
-    font-size: 16px; /* Font size for the icon */
+    font-size: 21px; /* Font size for the icon */
     width: 21px; /* Set width */
     height: 21px; /* Set height */
     cursor: pointer; /* Pointer cursor on hover */
@@ -302,3 +302,36 @@ li:hover {
     color: #fff; /* Change color on hover */
 }
 
+#invoice-textarea {
+    width: 100%; /* Full width */
+    padding: 10px; /* Padding for comfort */
+    border: 1px solid #ff9900; /* Border color to match the app */
+    border-radius: 0px; 
+    font-size: 16px; /* Font size to match the app */
+    background-color: #222; /* Background color to match the app */
+    color: #ff9900; /* Text color to match the app */
+    resize: none; /* Disable resizing */
+    margin-bottom: 10px; /* Space below the textarea */
+}
+
+#copy-invoice-button {
+    background: #ff9900; /* Button background color */
+    border: none; /* No border */
+    padding: 10px; /* Padding for comfort */
+    cursor: pointer; /* Pointer cursor on hover */
+    color: #000; /* Text color */
+    width: 100%; /* Full width */
+    margin: 5px 0; /* Margin for spacing */
+
+    font-size: 16px; /* Font size to match the app */
+}
+
+#copy-invoice-button:hover {
+    background: #e68a00; /* Darker shade on hover */
+}
+
+#copy-message {
+    color: #ff9900; /* Color for the copied message */
+    font-size: 14px; /* Font size for the message */
+    margin-top: 5px; /* Space above the message */
+}
