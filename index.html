@@ -46,6 +46,8 @@
 
             infoButton.addEventListener('click', async () => {
                 try {
+                    infoModal.style.display = 'block';
+
                     const response = await currentConnection.getInfo();
 
                     // Get the methods list element
@@ -66,8 +68,7 @@
                     }
 
                     const walletServiceInfo = await currentConnection.getWalletServiceInfo();
-
-                    infoModal.style.display = 'block';
+                    const budgetInfo = await currentConnection.getBudget();
                 } catch (error) {
                     console.error("Error fetching connection info:", error);
                     document.getElementById('connection-info').textContent = "Error fetching connection info.";
@@ -188,19 +189,37 @@
                 walletInfo.style.display = 'none';
 
                 try {
-
                     // Fetch the balance
                     const balanceResponse = await currentConnection.getBalance();
                     const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
                     balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
 
-
                     // Set the wallet name display
                     const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
                     document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
 
-                    const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
+                    // Load transactions
+                    await loadTransactions();
 
+                    // Show the wallet after loading is complete
+                    walletInfo.classList.remove('hidden');
+                    walletInfo.style.display = 'flex';
+
+                    // Save the current connection URL to localStorage
+                    localStorage.setItem('current_connection_url', url);
+                } catch (error) {
+                    console.error("Error loading wallet:", error);
+                    transactionsDiv.innerHTML = "Error loading transactions.";
+                } finally {
+                    // Hide loading animation
+                    loadingDiv.classList.remove('visible');
+                }
+            } // End loadWallet()
+
+            async function loadTransactions() {
+                const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
+
+                try {
                     // Fetch the transactions
                     const transactionsResponse = await currentConnection.listTransactions({
                         from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
@@ -240,21 +259,11 @@
                         // Append the transaction div to the transactionsDiv
                         transactionsDiv.appendChild(transactionDiv);
                     });
-
-                    // Show the wallet after loading is complete
-                    walletInfo.classList.remove('hidden');
-                    walletInfo.style.display = 'flex';
-
-                    // Save the current connection URL to localStorage
-                    localStorage.setItem('current_connection_url', url);
                 } catch (error) {
-                    console.error("Error loading wallet:", error);
+                    console.error("Error loading transactions:", error);
                     transactionsDiv.innerHTML = "Error loading transactions.";
-                } finally {
-                    // Hide loading animation
-                    loadingDiv.classList.remove('visible');
                 }
-            }  // End loadWallet()
+            } // End loadTransactions()
 
             async function sendFunds() {
                 const invoice = prompt("Enter lightning invoice:");
@@ -263,7 +272,7 @@
                     try {
                         const response = await currentConnection.payInvoice({ invoice });
                         alert(`Transaction successful: ${response.preimage}`);
-                        loadWallet(currentConnection.options.nostrWalletConnectUrl);
+                        loadTransactions();
                     } catch (error) {
                         alert(`Error sending funds: ${error.message}`);
                     }
@@ -305,12 +314,24 @@
                 }, 1000);
             });
 
-
             // Close modal functionality
             document.getElementById('close-invoice-modal').addEventListener('click', () => {
                 document.getElementById('invoice-modal').style.display = 'none'; // Hide the modal
             });
 
+            document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') {
+                    const options = {
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        second: 'numeric',
+                        hour12: true // Use 12-hour format with AM/PM
+                    };
+                    const timestamp = new Date().toLocaleString(undefined, options); // Get the current time in local timezone
+                    console.log(`Window became visible at: ${timestamp}`);
+                    loadTransactions();
+                }
+            });
 
             document.getElementById('send-button').addEventListener('click', sendFunds);
             document.getElementById('receive-button').addEventListener('click', receiveFunds);
@@ -328,7 +349,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.7</small>
+                <small>0.0.8</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
@@ -354,7 +375,7 @@
                     <button id="send-button">Send</button>
                     <button id="receive-button">Receive</button>
                 </div>
-                <h3>Transactions</h3>
+                <h3 style="margin-bottom: 0px;">Transactions</h3>
                 <div id="transactions-container">
                     <div id="transactions"></div>
                 </div>
