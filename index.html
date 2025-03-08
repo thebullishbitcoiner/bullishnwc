@@ -189,16 +189,11 @@
                 walletInfo.style.display = 'none';
 
                 try {
-                    // Fetch the balance
-                    const balanceResponse = await currentConnection.getBalance();
-                    const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
-                    balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
-
                     // Set the wallet name display
                     const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
                     document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
 
-                    // Load transactions
+                    await loadBalance();
                     await loadTransactions();
 
                     // Show the wallet after loading is complete
@@ -215,6 +210,18 @@
                     loadingDiv.classList.remove('visible');
                 }
             } // End loadWallet()
+
+            async function loadBalance() {
+                try {
+                    // Fetch the balance
+                    const balanceResponse = await currentConnection.getBalance();
+                    const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
+                    balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
+                } catch (error) {
+                    console.error("Error loading balance:", error);
+                    balanceDiv.textContent = "Error loading balance.";
+                }
+            } // End loadBalance()
 
             async function loadTransactions() {
                 const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
@@ -272,6 +279,7 @@
                     try {
                         const response = await currentConnection.payInvoice({ invoice });
                         alert(`Transaction successful: ${response.preimage}`);
+                        loadBalance();
                         loadTransactions();
                     } catch (error) {
                         alert(`Error sending funds: ${error.message}`);
@@ -329,6 +337,7 @@
                     };
                     const timestamp = new Date().toLocaleString(undefined, options); // Get the current time in local timezone
                     console.log(`Window became visible at: ${timestamp}`);
+                    loadBalance();
                     loadTransactions();
                 }
             });
@@ -349,7 +358,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.8</small>
+                <small>0.0.9</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
