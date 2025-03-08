@@ -178,9 +178,8 @@
             }
 
             async function loadWallet(url) {
-                const nwcUrl = url;
                 currentConnection = new nwc.NWCClient({
-                    nostrWalletConnectUrl: nwcUrl,
+                    nostrWalletConnectUrl: url,
                 });
 
                 // Show loading animation
@@ -193,8 +192,8 @@
                     const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
                     document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
 
-                    await loadBalance();
-                    await loadTransactions();
+                    await loadBalance(currentConnection);
+                    await loadTransactions(currentConnection);
 
                     // Show the wallet after loading is complete
                     walletInfo.classList.remove('hidden');
@@ -211,7 +210,7 @@
                 }
             } // End loadWallet()
 
-            async function loadBalance() {
+            async function loadBalance(currentConnection) {
                 try {
                     // Fetch the balance
                     const balanceResponse = await currentConnection.getBalance();
@@ -223,7 +222,7 @@
                 }
             } // End loadBalance()
 
-            async function loadTransactions() {
+            async function loadTransactions(currentConnection) {
                 const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
                 try {
@@ -327,7 +326,7 @@
                 document.getElementById('invoice-modal').style.display = 'none'; // Hide the modal
             });
 
-            document.addEventListener('visibilitychange', function () {
+            document.addEventListener('visibilitychange', async function () {
                 if (document.visibilityState === 'visible') {
                     const options = {
                         hour: 'numeric',
@@ -336,9 +335,31 @@
                         hour12: true // Use 12-hour format with AM/PM
                     };
                     const timestamp = new Date().toLocaleString(undefined, options); // Get the current time in local timezone
-                    console.log(`Window became visible at: ${timestamp}`);
-                    loadBalance();
-                    loadTransactions();
+                    console.log(`[${timestamp}] window became visible`);
+
+                    if (!currentConnection) {
+                        const currentConnectionURL = localStorage.getItem('current_connection_url');
+                        if (currentConnectionURL) {
+                            try {
+                                currentConnection = new nwc.NWCClient({
+                                    nostrWalletConnectUrl: currentConnectionURL,
+                                });
+                                await loadBalance(currentConnection);
+                                await loadTransactions(currentConnection);
+                            } catch (error) {
+                                console.error("Error initializing NWCClient or loading data:", error);
+                            }
+                        } else {
+                            console.error("No current connection URL found in localStorage.");
+                        }
+                    } else {
+                        try {
+                            await loadBalance(currentConnection);
+                            await loadTransactions(currentConnection);
+                        } catch (error) {
+                            console.error("Error loading balance or transactions:", error);
+                        }
+                    }
                 }
             });
 
@@ -358,7 +379,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.9</small>
+                <small>0.0.10</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
