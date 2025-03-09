@@ -154,25 +154,25 @@ document.addEventListener("DOMContentLoaded", () => {
     function timeAgo(timestamp) {
         // Calculate the difference in seconds
         const seconds = Math.floor(Date.now() / 1000) - timestamp;
-
+    
         let interval = Math.floor(seconds / 31536000);
         if (interval > 1) return interval + " years ago";
         interval = Math.floor(seconds / 2592000);
         if (interval > 1) return interval + " months ago";
         interval = Math.floor(seconds / 86400);
-
-        // Check for the specific case of 1 day ago
-        if (interval === 1 && seconds >= 86400 && seconds < 172800) {
-            return "1 day ago";
-        }
-
         if (interval > 1) return interval + " days ago";
+        if (interval === 1) return "1 day ago";
+    
         interval = Math.floor(seconds / 3600);
         if (interval > 1) return interval + " hours ago";
+        if (interval === 1) return "1 hour ago";
+    
         interval = Math.floor(seconds / 60);
         if (interval > 1) return interval + " minutes ago";
+        if (interval === 1) return "1 minute ago";
+    
         return seconds < 30 ? "just now" : seconds + " seconds ago";
-    }
+    }    
 
     async function loadWallet(url) {
         currentConnection = new nwc.NWCClient({
