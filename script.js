@@ -74,8 +74,9 @@ document.addEventListener("DOMContentLoaded", () => {
         infoModal.style.display = 'none';
     });
 
-    menuButton.addEventListener('click', () => {
-        flyoutMenu.classList.toggle('visible'); // Toggle the visible class
+    menuButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        flyoutMenu.classList.toggle('visible');
     });
 
     addConnectionButton.addEventListener('click', () => {
