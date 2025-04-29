@@ -1,17 +1,5 @@
 import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
 
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-            .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-    });
-}
-
 let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
 let currentConnection = null;
 
