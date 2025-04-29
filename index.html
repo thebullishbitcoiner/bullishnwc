@@ -12,6 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script type="module" src="https://unpkg.com/bitcoin-qr@1.4.1/dist/bitcoin-qr/bitcoin-qr.esm.js"></script>
 
     <script type="module">
         import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
@@ -90,23 +91,34 @@
             });
 
             menuButton.addEventListener('click', () => {
-                flyoutMenu.classList.toggle('visible'); // Toggle the visible class
+                const isVisible = flyoutMenu.classList.contains('visible');
+                if (isVisible) {
+                    flyoutMenu.classList.remove('visible');
+                } else {
+                    flyoutMenu.classList.add('visible');
+                }
             });
 
             addConnectionButton.addEventListener('click', () => {
                 const walletUrl = walletUrlInput.value;
                 const walletName = walletNameInput.value;
 
-                if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
-                    const newConnection = { name: walletName, url: walletUrl };
-                    connections.push(newConnection);
-                    localStorage.setItem('nwc_connections', JSON.stringify(connections)); // Store in local storage
-                    updateConnectionList();
-                    walletUrlInput.value = '';
-                    walletNameInput.value = '';
-                } else {
-                    alert('Please enter both wallet name and URL, and ensure the URL is unique.');
+                if (!walletUrl || !walletName) {
+                    alert('Please enter both wallet name and URL');
+                    return;
                 }
+
+                if (connections.some(conn => conn.url === walletUrl)) {
+                    alert('This wallet URL is already added');
+                    return;
+                }
+
+                const newConnection = { name: walletName, url: walletUrl };
+                connections.push(newConnection);
+                localStorage.setItem('nwc_connections', JSON.stringify(connections));
+                updateConnectionList();
+                walletUrlInput.value = '';
+                walletNameInput.value = '';
             });
 
             function updateConnectionList() {
@@ -146,11 +158,9 @@
             }
 
             function deleteConnection(index) {
-                // Remove the connection from the array
+                const connection = connections[index];
                 connections.splice(index, 1);
-                // Update local storage
                 localStorage.setItem('nwc_connections', JSON.stringify(connections));
-                // Update the connection list display
                 updateConnectionList();
             }
 
@@ -183,21 +193,17 @@
                     nostrWalletConnectUrl: nwcUrl,
                 });
 
-                // Show loading animation
                 const loadingDiv = document.getElementById('loading');
                 loadingDiv.classList.add('visible');
                 walletInfo.style.display = 'none';
 
                 try {
-
                     // Fetch the balance
                     const balanceResponse = await currentConnection.getBalance();
-                    const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
-                    balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
+                    const balance = Math.floor(balanceResponse.balance / 1000);
+                    balanceDiv.textContent = `${balance} sats`;
 
-
-                    // Set the wallet name display
-                    const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
+                    const walletName = connections.find(conn => conn.url === url).name;
                     document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
 
                     const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
@@ -209,53 +215,41 @@
                         limit: 30,
                     });
 
-                    // Clear previous transactions
                     transactionsDiv.innerHTML = '';
 
-                    // Assuming transactions are in a property called 'transactions'
-                    const transactions = transactionsResponse.transactions;
-
-                    // Check if transactions is an array
-                    if (!Array.isArray(transactions)) {
-                        console.error("Expected transactions to be an array, but got:", transactions);
-                        transactionsDiv.innerHTML = "No transactions found.";
-                        return; // Exit the function if transactions is not an array
+                    if (!Array.isArray(transactionsResponse.transactions)) {
+                        throw new Error('Invalid transactions data received');
                     }
 
-                    transactions.forEach(tx => {
-                        // Create a div for each transaction
-                        const transactionDiv = document.createElement('div');
+                    const transactions = transactionsResponse.transactions;
+                    if (transactions.length === 0) {
+                        transactionsDiv.innerHTML = "No transactions found.";
+                    } else {
+                        transactions.forEach(tx => {
+                            const transactionDiv = document.createElement('div');
+                            const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                            const timeString = timeAgo(tx.created_at);
 
-                        // Determine the arrow based on the transaction type
-                        const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                            transactionDiv.innerHTML = `
+                                <strong></strong> ${arrow} ${tx.amount / 1000} sats 
+                                <span style="float: right;">${timeString}</span>
+                                <br>
+                                <hr style="background-color: #333; height: 2px; border: none;">
+                            `;
+                            transactionsDiv.appendChild(transactionDiv);
+                        });
+                    }
 
-                        // Format the transaction details
-                        const timeString = timeAgo(tx.created_at); // Get the human-readable time string
-
-                        transactionDiv.innerHTML = `
-                            <strong></strong> ${arrow} ${tx.amount / 1000} sats 
-                            <span style="float: right;">${timeString}</span>
-                            <br>
-                            <hr style="background-color: #333; height: 2px; border: none;">
-                        `;
-                        // Append the transaction div to the transactionsDiv
-                        transactionsDiv.appendChild(transactionDiv);
-                    });
-
-                    // Show the wallet after loading is complete
                     walletInfo.classList.remove('hidden');
                     walletInfo.style.display = 'flex';
-
-                    // Save the current connection URL to localStorage
                     localStorage.setItem('current_connection_url', url);
                 } catch (error) {
-                    console.error("Error loading wallet:", error);
+                    console.error('Error loading wallet:', error);
                     transactionsDiv.innerHTML = "Error loading transactions.";
                 } finally {
-                    // Hide loading animation
                     loadingDiv.classList.remove('visible');
                 }
-            }  // End loadWallet()
+            }
 
             async function sendFunds() {
                 const invoice = prompt("Enter lightning invoice:");
@@ -283,8 +277,13 @@
 
                         // Show the modal with the invoice
                         const invoiceTextarea = document.getElementById('invoice-textarea');
-                        invoiceTextarea.value = invoice; // Set the invoice in the textarea
-                        document.getElementById('invoice-modal').style.display = 'block'; // Show the modal
+                        invoiceTextarea.value = invoice;
+
+                        // Set the QR code
+                        const qrElement = document.getElementById('invoice-qr');
+                        qrElement.lightning = invoice;
+
+                        document.getElementById('invoice-modal').style.display = 'block';
                     } catch (error) {
                         console.error("Error in receiveFunds:", error);
                         alert(`Error: ${error.message}`);
@@ -306,12 +305,10 @@
                 }, 1000);
             });
 
-
             // Close modal functionality
             document.getElementById('close-invoice-modal').addEventListener('click', () => {
                 document.getElementById('invoice-modal').style.display = 'none'; // Hide the modal
             });
-
 
             document.getElementById('send-button').addEventListener('click', sendFunds);
             document.getElementById('receive-button').addEventListener('click', receiveFunds);
@@ -319,7 +316,6 @@
             // Initialize the connection list on page load
             updateConnectionList();
         });
-
     </script>
 </head>
 
@@ -329,7 +325,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.21</small>
+                <small>0.0.23</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
@@ -391,9 +387,14 @@
             </div>
 
             <div id="invoice-modal" class="modal">
-                <div class="modal-content">
+                <div class="modal-content" style="max-width: 350px;">
                     <span class="close-button" id="close-invoice-modal">&times;</span>
                     <h2>Invoice</h2>
+                    <div id="qr-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <bitcoin-qr id="invoice-qr" width="300" height="300" lightning="lnbc..." dots-type="square"
+                            corners-square-type="square" image="bullishnwc-icon.png" image-size="40"
+                            image-margin="5" qr-error-correction-level="H"></bitcoin-qr>
+                    </div>
                     <textarea id="invoice-textarea" rows="7" readonly></textarea>
                     <button id="copy-invoice-button">Copy</button>
                     <p id="copy-message" style="display: none;">Copied!</p>
