@@ -76,12 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     menuButton.addEventListener('click', (event) => {
         event.stopPropagation();
-        const isVisible = flyoutMenu.classList.contains('visible');
-        if (isVisible) {
-            flyoutMenu.classList.remove('visible');
-        } else {
-            flyoutMenu.classList.add('visible');
-        }
+        flyoutMenu.classList.toggle('visible');
     });
 
     addConnectionButton.addEventListener('click', () => {
