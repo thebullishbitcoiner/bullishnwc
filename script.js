@@ -74,7 +74,8 @@ document.addEventListener("DOMContentLoaded", () => {
         infoModal.style.display = 'none';
     });
 
-    menuButton.addEventListener('click', () => {
+    menuButton.addEventListener('click', (event) => {
+        event.stopPropagation();
         const isVisible = flyoutMenu.classList.contains('visible');
         if (isVisible) {
             flyoutMenu.classList.remove('visible');
