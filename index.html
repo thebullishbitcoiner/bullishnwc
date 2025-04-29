@@ -124,7 +124,27 @@
             });
 
             menuButton.addEventListener('click', () => {
-                flyoutMenu.classList.toggle('visible'); // Toggle the visible class
+                const isVisible = flyoutMenu.classList.contains('visible');
+                if (isVisible) {
+                    flyoutMenu.classList.remove('visible');
+                } else {
+                    flyoutMenu.classList.add('visible');
+                }
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (event) => {
+                const isClickInsideMenu = flyoutMenu.contains(event.target);
+                const isClickOnMenuButton = menuButton.contains(event.target);
+                
+                if (!isClickInsideMenu && !isClickOnMenuButton && flyoutMenu.classList.contains('visible')) {
+                    flyoutMenu.classList.remove('visible');
+                }
+            });
+
+            // Prevent menu from closing when clicking inside it
+            flyoutMenu.addEventListener('click', (event) => {
+                event.stopPropagation();
             });
 
             addConnectionButton.addEventListener('click', () => {
@@ -364,10 +384,10 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.14</small>
+                <small>0.0.15</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
-            <div id="flyout-menu" class="flyout-menu hidden">
+            <div id="flyout-menu" class="flyout-menu">
                 <div class="header-container">
                     <h1>Connections</h1>
                 </div>

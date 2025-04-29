@@ -67,6 +67,7 @@ body {
     right: 0px;
     top: 0;
     display: none;
+    border: 1px solid #ff9900;
 }
 
 .flyout-menu.visible {
