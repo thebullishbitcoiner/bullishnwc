@@ -7,12 +7,12 @@
     "description": "A bullish NWC wallet.",
     "icons": [
         {
-            "src": "bullishnwc-1.0.png",
+            "src": "bullishnwc-icon.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "bullishnwc-1.0.png",
+            "src": "bullishnwc-icon.png",
             "sizes": "512x512",
             "type": "image/png"
         }
