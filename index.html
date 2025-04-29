@@ -18,6 +18,40 @@
         let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
         let currentConnection = null;
 
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => container.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Enhanced error handling wrapper
+        async function handleAsyncOperation(operation, successMessage, errorMessage) {
+            try {
+                const result = await operation();
+                if (successMessage) {
+                    showToast(successMessage, 'success');
+                }
+                return result;
+            } catch (error) {
+                console.error(error);
+                showToast(errorMessage || error.message || 'An error occurred', 'error');
+                throw error;
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             const menuButton = document.getElementById('menu-button');
             const flyoutMenu = document.getElementById('flyout-menu');
@@ -96,16 +130,23 @@
                 const walletUrl = walletUrlInput.value;
                 const walletName = walletNameInput.value;
 
-                if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
-                    const newConnection = { name: walletName, url: walletUrl };
-                    connections.push(newConnection);
-                    localStorage.setItem('nwc_connections', JSON.stringify(connections)); // Store in local storage
-                    updateConnectionList();
-                    walletUrlInput.value = '';
-                    walletNameInput.value = '';
-                } else {
-                    alert('Please enter both wallet name and URL, and ensure the URL is unique.');
+                if (!walletUrl || !walletName) {
+                    showToast('Please enter both wallet name and URL', 'error');
+                    return;
                 }
+
+                if (connections.some(conn => conn.url === walletUrl)) {
+                    showToast('This wallet URL is already added', 'error');
+                    return;
+                }
+
+                const newConnection = { name: walletName, url: walletUrl };
+                connections.push(newConnection);
+                localStorage.setItem('nwc_connections', JSON.stringify(connections));
+                updateConnectionList();
+                walletUrlInput.value = '';
+                walletNameInput.value = '';
+                showToast('Wallet connection added successfully', 'success');
             });
 
             function updateConnectionList() {
@@ -145,12 +186,11 @@
             }
 
             function deleteConnection(index) {
-                // Remove the connection from the array
+                const connection = connections[index];
                 connections.splice(index, 1);
-                // Update local storage
                 localStorage.setItem('nwc_connections', JSON.stringify(connections));
-                // Update the connection list display
                 updateConnectionList();
+                showToast(`Connection "${connection.name}" deleted`, 'info');
             }
 
             function timeAgo(timestamp) {
@@ -182,79 +222,74 @@
                     nostrWalletConnectUrl: nwcUrl,
                 });
 
-                // Show loading animation
                 const loadingDiv = document.getElementById('loading');
                 loadingDiv.classList.add('visible');
                 walletInfo.style.display = 'none';
 
                 try {
+                    await handleAsyncOperation(
+                        async () => {
+                            const balanceResponse = await currentConnection.getBalance();
+                            const balance = Math.floor(balanceResponse.balance / 1000);
+                            balanceDiv.textContent = `${balance} sats`;
+                        },
+                        'Balance updated successfully',
+                        'Failed to fetch balance'
+                    );
 
-                    // Fetch the balance
-                    const balanceResponse = await currentConnection.getBalance();
-                    const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
-                    balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
-
-
-                    // Set the wallet name display
-                    const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
+                    const walletName = connections.find(conn => conn.url === url).name;
                     document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
 
                     const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
-                    // Fetch the transactions
-                    const transactionsResponse = await currentConnection.listTransactions({
-                        from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
-                        until: Math.ceil(new Date().getTime() / 1000),
-                        limit: 30,
-                    });
+                    await handleAsyncOperation(
+                        async () => {
+                            const transactionsResponse = await currentConnection.listTransactions({
+                                from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
+                                until: Math.ceil(new Date().getTime() / 1000),
+                                limit: 30,
+                            });
 
-                    // Clear previous transactions
-                    transactionsDiv.innerHTML = '';
+                            transactionsDiv.innerHTML = '';
 
-                    // Assuming transactions are in a property called 'transactions'
-                    const transactions = transactionsResponse.transactions;
+                            if (!Array.isArray(transactionsResponse.transactions)) {
+                                throw new Error('Invalid transactions data received');
+                            }
 
-                    // Check if transactions is an array
-                    if (!Array.isArray(transactions)) {
-                        console.error("Expected transactions to be an array, but got:", transactions);
-                        transactionsDiv.innerHTML = "No transactions found.";
-                        return; // Exit the function if transactions is not an array
-                    }
+                            const transactions = transactionsResponse.transactions;
+                            if (transactions.length === 0) {
+                                transactionsDiv.innerHTML = "No transactions found.";
+                                return;
+                            }
 
-                    transactions.forEach(tx => {
-                        // Create a div for each transaction
-                        const transactionDiv = document.createElement('div');
+                            transactions.forEach(tx => {
+                                const transactionDiv = document.createElement('div');
+                                const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                                const timeString = timeAgo(tx.created_at);
 
-                        // Determine the arrow based on the transaction type
-                        const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                                transactionDiv.innerHTML = `
+                                    <strong></strong> ${arrow} ${tx.amount / 1000} sats 
+                                    <span style="float: right;">${timeString}</span>
+                                    <br>
+                                    <hr style="background-color: #333; height: 2px; border: none;">
+                                `;
+                                transactionsDiv.appendChild(transactionDiv);
+                            });
+                        },
+                        'Transactions loaded successfully',
+                        'Failed to load transactions'
+                    );
 
-                        // Format the transaction details
-                        const timeString = timeAgo(tx.created_at); // Get the human-readable time string
-
-                        transactionDiv.innerHTML = `
-                            <strong></strong> ${arrow} ${tx.amount / 1000} sats 
-                            <span style="float: right;">${timeString}</span>
-                            <br>
-                            <hr style="background-color: #333; height: 2px; border: none;">
-                        `;
-                        // Append the transaction div to the transactionsDiv
-                        transactionsDiv.appendChild(transactionDiv);
-                    });
-
-                    // Show the wallet after loading is complete
                     walletInfo.classList.remove('hidden');
                     walletInfo.style.display = 'flex';
-
-                    // Save the current connection URL to localStorage
                     localStorage.setItem('current_connection_url', url);
                 } catch (error) {
-                    console.error("Error loading wallet:", error);
-                    transactionsDiv.innerHTML = "Error loading transactions.";
+                    showToast('Failed to load wallet data', 'error');
+                    console.error('Error loading wallet:', error);
                 } finally {
-                    // Hide loading animation
                     loadingDiv.classList.remove('visible');
                 }
-            }  // End loadWallet()
+            }
 
             async function sendFunds() {
                 const invoice = prompt("Enter lightning invoice:");
@@ -323,12 +358,12 @@
 </head>
 
 <body>
-
+    <div id="toast-container"></div>
     <div id="app">
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.7</small>
+                <small>0.0.8</small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
