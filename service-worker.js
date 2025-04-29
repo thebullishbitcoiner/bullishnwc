@@ -4,7 +4,7 @@ const urlsToCache = [
     'index.html', // Add your main HTML file
     'styles.css', // Add your CSS files
     'script.js', // Add your JavaScript files
-    'bullishnwc-icon.png', // Add your icons and images
+    'bullishnwc-1.0.png', // Add your icons and images
     // Add any other assets you want to cache
 ];
 
