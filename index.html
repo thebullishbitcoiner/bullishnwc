@@ -25,12 +25,12 @@
                 <h1>bullishNWC</h1>
                 <small id="app-version"></small>
             </div>
-            <button id="menu-button" class="hamburger">☰</button>
+            <button id="menu-button" class="hamburger" aria-label="Open menu">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
                 <div class="header-container">
                     <h1>Connections</h1>
                 </div>
-                <ul id="connection-list" style="padding-top: 10px;"></ul>
+                <ul id="connection-list" class="connection-list"></ul>
                 <div class="flyout-actions">
                     <button id="open-add-modal" class="flyout-action-button">Add</button>
                     <button id="create-test-wallet" class="flyout-action-button">Create Test Wallet</button>
@@ -40,12 +40,12 @@
             <!-- Add Connection modal (name + URL inputs) -->
             <div id="add-connection-modal" class="modal hidden">
                 <div class="modal-content">
-                    <span class="close-button" id="close-add-modal">&times;</span>
-                    <h2 style="margin-top: 0;">Add Connection</h2>
+                    <span class="close-button" id="close-add-modal" aria-label="Close">&times;</span>
+                    <h2>Add Connection</h2>
                     <div class="add-container">
                         <input type="text" id="wallet-name" placeholder="Name">
                         <textarea id="wallet-url" placeholder="nostr+walletconnect..." rows="3"></textarea>
-                        <button id="add-connection">Add</button>
+                        <button id="add-connection" class="btn-primary">Add</button>
                     </div>
                 </div>
             </div>
@@ -53,19 +53,19 @@
             <!-- Delete connection confirmation -->
             <div id="delete-connection-modal" class="modal hidden">
                 <div class="modal-content modal-content--narrow">
-                    <span class="close-button" id="close-delete-modal">&times;</span>
-                    <h2 style="margin-top: 0;">Remove connection?</h2>
-                    <p id="delete-connection-message" style="margin: 1em 0;"></p>
+                    <span class="close-button" id="close-delete-modal" aria-label="Close">&times;</span>
+                    <h2>Remove connection?</h2>
+                    <p id="delete-connection-message" class="delete-connection-message"></p>
                     <div class="delete-modal-actions">
                         <button id="delete-connection-cancel">Cancel</button>
-                        <button id="delete-connection-confirm" class="button-danger">Remove</button>
+                        <button id="delete-connection-confirm" class="btn-danger">Remove</button>
                     </div>
                 </div>
             </div>
             <div id="wallet-info" class="hidden">
-                <div id="wallet-name-container" style="display: flex; align-items: center;">
+                <div id="wallet-name-container" class="wallet-name-container">
                     <h2 id="wallet-name-display" class="wallet-name-header"></h2>
-                    <button id="info-button" class="info-button">
+                    <button id="info-button" class="info-button" aria-label="Connection info">
                         <i class="fas fa-info-circle"></i>
                     </button>
                 </div>
@@ -79,31 +79,34 @@
                     <div id="transactions"></div>
                 </div>
             </div>
-            <div id="loading" class="hidden">
+            <div id="loading" class="hidden" aria-live="polite" aria-busy="true">
                 <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                <span class="loading-label">Loading…</span>
             </div>
-            <div id="default-message" style="display: none; color: #ff9900; margin-top: 21px;">
-                <p>A bullish Nostr Wallet Connect (NWC) wallet aimed at creating a simple, streamlined interface to
-                    manage multiple connections.</p>
-                <p>For the best experience, add this progressive web app (PWA) to your home screen. Here's how to do it
-                    on Android and iOS.</p>
+            <div id="default-message" class="default-message hidden">
+                <div class="welcome-card">
+                    <p>A bullish Nostr Wallet Connect (NWC) wallet aimed at creating a simple, streamlined interface to
+                        manage multiple connections.</p>
+                    <p>For the best experience, add this progressive web app (PWA) to your home screen. Here's how to do it
+                        on Android and iOS.</p>
 
-                <h4>Android:</h4>
-                <p>Tap the three-dot menu in the top right corner and select "Add to Home screen."</p>
+                    <h4>Android:</h4>
+                    <p>Tap the three-dot menu in the top right corner and select "Add to Home screen."</p>
 
-                <h4>iOS:</h4>
-                <p>Tap the share button (the square with an arrow pointing up) at the bottom of the screen. Scroll down
-                    and select "Add to Home Screen."</p>
+                    <h4>iOS:</h4>
+                    <p>Tap the share button (the square with an arrow pointing up) at the bottom of the screen. Scroll down
+                        and select "Add to Home Screen."</p>
 
-                <h4>Get Started</h4>
-                <p>What next? Tap "☰" at the top right to add your first connection.</p>
+                    <h4>Get Started</h4>
+                    <p class="get-started">Tap "☰" at the top right to add your first connection.</p>
+                </div>
             </div>
 
             <!-- Modal for Connection Info -->
             <div id="info-modal" class="modal hidden">
                 <div class="modal-content">
-                    <span class="close-button" id="close-info-modal">&times;</span>
-                    <h2 style="margin-top: 0px;">Connection Info</h2>
+                    <span class="close-button" id="close-info-modal" aria-label="Close">&times;</span>
+                    <h2>Connection Info</h2>
                     <h4>Available Methods:</h4>
                     <ul id="methods-list"></ul>
                 </div>
@@ -112,8 +115,8 @@
             <!-- Send modal (invoice or lightning address) -->
             <div id="send-modal" class="modal hidden">
                 <div class="modal-content modal-content--narrow">
-                    <span class="close-button" id="close-send-modal">&times;</span>
-                    <h2 style="margin-top: 0;">Send</h2>
+                    <span class="close-button" id="close-send-modal" aria-label="Close">&times;</span>
+                    <h2>Send</h2>
                     <div class="add-container">
                         <div class="input-with-icon">
                             <textarea id="send-invoice" placeholder="Paste lightning invoice or lightning address (e.g. user@domain.com)" rows="5"></textarea>
@@ -122,31 +125,31 @@
                         <label for="send-amount">Amount (sats) — required for lightning address</label>
                         <input type="number" id="send-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
                         <p id="send-message" class="send-message hidden"></p>
-                        <button id="send-pay-button">Pay</button>
+                        <button id="send-pay-button" class="btn-primary">Pay</button>
                     </div>
                 </div>
             </div>
 
             <!-- Receive modal (amount + optional description) -->
             <div id="receive-modal" class="modal hidden">
-                <div class="modal-content">
-                    <span class="close-button" id="close-receive-modal">&times;</span>
-                    <h2 style="margin-top: 0;">Receive</h2>
+                <div class="modal-content modal-content--narrow">
+                    <span class="close-button" id="close-receive-modal" aria-label="Close">&times;</span>
+                    <h2>Receive</h2>
                     <div class="add-container">
                         <label for="receive-amount">Amount (sats)</label>
                         <input type="number" id="receive-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
                         <label for="receive-description">Description (optional)</label>
                         <input type="text" id="receive-description" placeholder="What's this for?">
-                        <button id="receive-create-invoice">Create invoice</button>
+                        <button id="receive-create-invoice" class="btn-primary">Create invoice</button>
                     </div>
                 </div>
             </div>
 
-            <div id="invoice-modal" class="modal">
+            <div id="invoice-modal" class="modal hidden">
                 <div class="modal-content modal-content--invoice">
-                    <span class="close-button" id="close-invoice-modal">&times;</span>
+                    <span class="close-button" id="close-invoice-modal" aria-label="Close">&times;</span>
                     <h2>Invoice</h2>
-                    <div id="qr-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
+                    <div id="qr-container" class="qr-container">
                         <bitcoin-qr id="invoice-qr" width="300" height="300" lightning="lnbc..." dots-type="square"
                             corners-square-type="square" image="bullishnwc-icon.png" image-size="40"
                             image-margin="5" qr-error-correction-level="H"></bitcoin-qr>

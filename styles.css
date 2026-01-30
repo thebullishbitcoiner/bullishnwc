@@ -1,17 +1,40 @@
+/* Design tokens */
+:root {
+    --color-primary: #ff9900;
+    --color-primary-dim: #e68a00;
+    --color-primary-muted: #965a00;
+    --color-bg: #000;
+    --color-surface: #111;
+    --color-surface-elevated: #222;
+    --color-surface-hover: #333;
+    --color-danger: #e74c3c;
+    --color-success: #27ae60;
+    --color-text: #ff9900;
+    --color-text-muted: #965a00;
+    --space-xs: 5px;
+    --space-sm: 8px;
+    --space-md: 10px;
+    --space-lg: 15px;
+    --space-xl: 20px;
+    --space-2xl: 21px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --border: 1px solid var(--color-primary);
+}
+
 * {
     box-sizing: border-box;
 }
 
 body {
     font-family: monospace;
-    background-color: #000;
-    color: #ff9900;
-    padding: 10px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    padding: var(--space-2xl);
     margin: 0;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    padding: 21px;
 }
 
 #app {
@@ -23,11 +46,11 @@ body {
 }
 
 .terminal {
-    padding: 0px;
+    padding: 0;
     max-width: 600px;
     width: 100%;
     height: 100%;
-    border-radius: 0px;
+    border-radius: var(--radius-md);
     display: flex;
     flex-direction: column;
 }
@@ -39,24 +62,25 @@ body {
 
 .header-container h1 {
     margin: 0;
-    /* Remove default margin */
 }
 
 .header-container small {
-    margin-left: 5px;
-    /* Space between app name and version */
+    margin-left: var(--space-md);
     margin-bottom: -11px;
     font-size: 0.8em;
-    /* Smaller font size for version */
-    color: #965a00;
-    /* Optional: change the color of the version text */
+    color: var(--color-text-muted);
 }
 
 .wallet-name-header {
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--space-sm) 0;
     font-size: 1rem;
     font-weight: 700;
-    color: #ff9900;
+    color: var(--color-text);
+}
+
+.wallet-name-container {
+    display: flex;
+    align-items: center;
 }
 
 .hidden {
@@ -64,14 +88,14 @@ body {
 }
 
 .flyout-menu {
-    background: #000;
-    padding: 21px;
+    background: var(--color-bg);
+    padding: var(--space-2xl);
     position: absolute;
     z-index: 10;
     width: 100%;
     max-width: 100%;
     height: 100%;
-    right: 0px;
+    right: 0;
     top: 0;
     display: none;
 }
@@ -80,26 +104,34 @@ body {
     display: block;
 }
 
+.connection-list {
+    padding-top: var(--space-md);
+}
+
+.connection-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .add-container {
     display: flex;
-    /* Use flexbox for layout */
     flex-direction: column;
-    /* Stack items vertically */
-    gap: 5px;
-    padding-top: 10px;
+    gap: var(--space-xs);
+    padding-top: var(--space-md);
 }
 
 .add-container input,
 .add-container textarea {
     width: 100%;
-    padding: 8px;
+    padding: var(--space-sm);
     box-sizing: border-box;
 }
 
 .add-container label {
-    color: #ff9900;
+    color: var(--color-text);
     font-size: 14px;
-    margin-top: 8px;
+    margin-top: var(--space-sm);
     display: block;
 }
 
@@ -110,51 +142,46 @@ body {
 .add-container input[type="number"],
 .add-container input[type="text"],
 .add-container textarea {
-    background-color: #222;
-    border: 1px solid #ff9900;
-    color: #ff9900;
+    background-color: var(--color-surface-elevated);
+    border: var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
     font-family: monospace;
 }
 
 .add-container input::placeholder,
 .add-container textarea::placeholder {
-    color: #965a00;
+    color: var(--color-text-muted);
 }
 
-.add-container button {
-    margin-top: 12px;
-    background: #ff9900;
-    color: #000;
-    border: none;
-    padding: 12px;
-    cursor: pointer;
-    font-family: monospace;
-    font-size: 16px;
-}
-
-.add-container button:hover {
-    background: #e68a00;
+.add-container .btn-primary {
+    margin-top: var(--space-lg);
 }
 
 .flyout-actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-top: 15px;
+    gap: var(--space-md);
+    padding-top: var(--space-lg);
 }
 
 .flyout-action-button {
-    background: #222;
-    color: #ff9900;
-    border: 1px solid #ff9900;
-    padding: 10px;
+    background: var(--color-surface-elevated);
+    color: var(--color-text);
+    border: var(--border);
+    padding: var(--space-md);
     cursor: pointer;
     font-family: monospace;
     font-size: inherit;
 }
 
 .flyout-action-button:hover {
-    background: #333;
+    background: var(--color-surface-hover);
+}
+
+.flyout-action-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .flyout-action-button:disabled {
@@ -163,27 +190,73 @@ body {
 }
 
 .hamburger {
-    background: #000;
+    background: var(--color-bg);
     border: none;
-    color: #ff9900;
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
     font-size: 24px;
     cursor: pointer;
     position: absolute;
-    right: 10px;
+    right: var(--space-md);
     top: 3px;
     z-index: 20;
-    padding: 10px;
+    padding: var(--space-md);
     width: auto;
 }
 
+.hamburger:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Button base and variants */
 button {
-    background: #ff9900;
+    background: var(--color-primary);
     border: none;
-    padding: 10px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-md);
     cursor: pointer;
-    color: #000;
+    color: var(--color-bg);
     width: 100%;
-    margin: 5px 0;
+    margin: var(--space-xs) 0;
+    font-family: monospace;
+}
+
+button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+button:hover {
+    background: var(--color-primary-dim);
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: var(--color-bg);
+    padding: 12px;
+    font-size: 16px;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dim);
+}
+
+.btn-danger {
+    background: var(--color-surface-elevated);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-sm);
+}
+
+.btn-danger:hover {
+    color: #fff;
+    border-color: var(--color-danger);
+}
+
+.btn-danger:focus-visible {
+    outline: 2px solid var(--color-danger);
+    outline-offset: 2px;
 }
 
 ul {
@@ -194,166 +267,241 @@ ul {
 
 li {
     cursor: pointer;
-    padding: 5px;
+    padding: var(--space-xs);
 }
 
 li:hover {
-    background: #444;
+    background: var(--color-surface-hover);
 }
 
+/* Wallet info */
 #wallet-info {
     display: none;
     flex-direction: column;
-    /* Stack children vertically */
     flex: 1;
-    /* Allow this section to grow and take up remaining space */
-    border: 1px solid #ff9900;
-    padding: 15px;
-    border-radius: 0px;
-    background-color: #111;
-    margin-top: 20px;
-    /* Space above the wallet info box */
+    border: var(--border);
+    padding: var(--space-lg);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface);
+    margin-top: var(--space-xl);
     max-height: 100%;
-    /* Adjust for body padding and margin */
     overflow: hidden;
-    /* Prevent overflow */
 }
 
-#transactions-container {
-    flex: 1;
-    /* Allow this container to grow and take up remaining space */
-    overflow-y: auto;
-    /* Enable vertical scrolling */
-    border: 1px solid #ff9900;
-    /* Optional: Add a border for better visibility */
-    padding: 10px;
-    /* Optional: Add some padding */
-    margin-top: 10px;
-    /* Optional: Add some margin above the container */
-    background-color: #222;
-    /* Optional: Set a background color */
+/* Balance card (hero) */
+.balance-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-md);
+    background: var(--color-surface-elevated);
+    border: var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.balance-card__amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.balance-card__unit {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-left: var(--space-xs);
+}
+
+.balance-card--error {
+    color: var(--color-danger);
+    font-size: 0.95rem;
 }
 
 #button-container {
     display: flex;
     justify-content: space-between;
-    margin-top: 10px;
+    margin-top: var(--space-md);
+    gap: var(--space-md);
 }
 
 #button-container button {
     flex: 1;
-    margin-right: 5px;
+    margin: 0;
     padding: 14px;
     font-size: 1rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
-#button-container button:last-child {
-    margin-right: 0;
+#transactions-container {
+    flex: 1;
+    overflow-y: auto;
+    border: var(--border);
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+    background-color: var(--color-surface-elevated);
+    border-radius: var(--radius-sm);
 }
 
+/* Transaction rows */
+.transaction-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-surface-hover);
+    font-size: 14px;
+}
+
+.transaction-row:last-child {
+    border-bottom: none;
+}
+
+.transaction-row__direction {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.transaction-row--incoming .transaction-row__direction,
+.transaction-row--outgoing .transaction-row__direction {
+    color: var(--color-text);
+}
+
+.transaction-row__time {
+    color: var(--color-text-muted);
+    font-size: 0.9em;
+}
+
+/* Loading state */
 #loading {
     display: none;
-    color: #ff9900;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    color: var(--color-text);
     font-size: 24px;
-    margin-top: 20px;
+    margin-top: var(--space-xl);
 }
 
 #loading.visible {
+    display: flex;
+}
+
+#loading .loading-label {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-top: var(--space-md);
+}
+
+/* Welcome / default message card */
+.default-message {
+    display: none;
+    margin-top: var(--space-2xl);
+}
+
+.default-message.visible {
     display: block;
 }
 
-.dot {
-    animation: bounce 1s infinite;
-    /* Apply bounce animation */
-    display: inline-block;
-    /* Make dots inline-block for spacing */
+.welcome-card {
+    padding: var(--space-xl);
+    border: var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+    max-width: 100%;
 }
 
-.dot:nth-child(1) {
-    animation-delay: 0s;
-    /* No delay for the first dot */
+.welcome-card h4 {
+    margin: var(--space-lg) 0 var(--space-sm) 0;
 }
 
-.dot:nth-child(2) {
-    animation-delay: 0.2s;
-    /* Delay for the second dot */
+.welcome-card h4:first-child {
+    margin-top: 0;
 }
 
-.dot:nth-child(3) {
-    animation-delay: 0.4s;
-    /* Delay for the third dot */
+.welcome-card p {
+    margin: 0 0 var(--space-md) 0;
 }
 
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: translateY(0);
-        /* Start and end at original position */
-    }
-
-    50% {
-        transform: translateY(-10px);
-        /* Move up by 10px at halfway point */
-    }
+.welcome-card .get-started {
+    font-weight: 700;
+    margin-top: var(--space-lg);
 }
 
+/* Delete button in connection list */
 .delete-button {
     display: flex;
-    /* Use flexbox */
     align-items: center;
-    /* Center items vertically */
     justify-content: center;
-    /* Center items horizontally */
     background: none;
     border: none;
-    color: #ff9900;
-    /* Change color as needed */
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
     cursor: pointer;
     font-size: 1.1em;
-    /* Increase the size of the icon */
-    height: 12px;
-    /* Set a height for the button */
-    width: 12px;
-    /* Set a width for the button */
+    height: 24px;
+    width: 24px;
+    padding: 0;
+    margin: 0;
+    min-width: 24px;
 }
 
+.delete-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Modals */
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
+    display: none;
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0, 0, 0, 0.8); /* Black with opacity */
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+@supports not (backdrop-filter: blur(4px)) {
+    .modal {
+        backdrop-filter: none;
+    }
 }
 
 .modal-content {
-    background-color: #111; /* Match the background color */
-    margin: 10% auto; /* Center the modal */
-    padding: 20px;
-    border: 1px solid #ff9900; /* Border color */
-    border-radius: 0px;
-    max-width: 600px; /* Same as .terminal main UI */
+    background-color: var(--color-surface);
+    margin: 10% auto;
+    padding: var(--space-xl);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    max-width: 600px;
     width: 90%;
     box-sizing: border-box;
-    color: #ff9900; /* Text color */
-    font-family: monospace; /* Match the font */
+    color: var(--color-text);
+    font-family: monospace;
+}
+
+.modal-content h2 {
+    margin-top: 0;
 }
 
 .modal-content--narrow,
 .modal-content--invoice {
-    max-width: 350px; /* Match receive/invoice modal */
+    max-width: 350px;
 }
 
 .close-button {
-    color: #ff9900; /* Close button color */
+    color: var(--color-text);
     float: right;
     font-size: 28px;
     font-weight: bold;
@@ -361,12 +509,17 @@ li:hover {
 }
 
 .close-button:hover {
-    color: #fff; /* Change color on hover */
+    color: #fff;
+}
+
+.close-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .delete-modal-actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-lg);
     margin-top: 1em;
     flex-wrap: wrap;
 }
@@ -376,15 +529,8 @@ li:hover {
     min-width: 80px;
 }
 
-.button-danger {
-    background: #222;
-    color: #e74c3c;
-    border: 1px solid #e74c3c;
-}
-
-.button-danger:hover {
-    color: #fff;
-    border-color: #e74c3c;
+.delete-connection-message {
+    margin: 1em 0;
 }
 
 .input-with-icon {
@@ -395,14 +541,13 @@ li:hover {
 .input-with-icon textarea {
     padding-right: 40px;
     display: block;
+    border-radius: var(--radius-sm);
 }
 
 #send-paste-button.paste-icon-button {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    left: auto;
-    bottom: auto;
+    top: var(--space-sm);
+    right: var(--space-sm);
     width: auto;
     min-width: auto;
     margin: 0;
@@ -410,39 +555,48 @@ li:hover {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: #965a00;
+    color: var(--color-text-muted);
     cursor: pointer;
     font-size: 16px;
 }
 
 #send-paste-button.paste-icon-button:hover {
-    color: #ff9900;
+    color: var(--color-primary);
+}
+
+#send-paste-button.paste-icon-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .invoice-input-wrapper {
     position: relative;
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: var(--space-md);
 }
 
 .invoice-input-wrapper input {
     width: 100%;
-    padding: 10px 48px 10px 10px;
+    padding: var(--space-md) 48px var(--space-md) var(--space-md);
     box-sizing: border-box;
-    background-color: #222;
-    border: 1px solid #ff9900;
-    color: #ff9900;
+    background-color: var(--color-surface-elevated);
+    border: var(--border);
+    color: var(--color-text);
     font-family: monospace;
     font-size: 12px;
+}
+
+.qr-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-xl);
 }
 
 #copy-invoice-icon.copy-icon-button {
     position: absolute;
     top: 50%;
-    right: 8px;
+    right: var(--space-sm);
     transform: translateY(-50%);
-    left: auto;
-    bottom: auto;
     width: auto;
     min-width: auto;
     margin: 0;
@@ -450,105 +604,92 @@ li:hover {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    color: #965a00;
+    color: var(--color-text-muted);
     cursor: pointer;
     font-size: 14px;
 }
 
 #copy-invoice-icon.copy-icon-button:hover {
-    color: #ff9900;
+    color: var(--color-primary);
+}
+
+#copy-invoice-icon.copy-icon-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .invoice-waiting {
     margin: 16px 0 0 0;
     font-size: 14px;
-    color: #965a00;
+    color: var(--color-text-muted);
 }
 
 .invoice-waiting i {
-    margin-right: 8px;
+    margin-right: var(--space-sm);
 }
 
 .invoice-waiting.hidden {
     display: none;
 }
 
-.info-button {
-    background: none; /* No background */
-    border: none; /* No border */
-    color: #ff9900; /* Text color */
-    font-size: 21px; /* Font size for the icon */
-    width: 21px; /* Set width */
-    height: 21px; /* Set height */
-    cursor: pointer; /* Pointer cursor on hover */
-    margin-left: auto; /* Align to the right */
-    padding: 0; /* Remove padding */
-    display: flex; /* Use flexbox for centering */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-}
-
-.info-button:hover {
-    color: #fff; /* Change color on hover */
-}
-
 .invoice-input-wrapper #invoice-textarea {
     width: 100%;
-    padding: 10px 52px 10px 10px; /* Extra right padding so text doesn't go behind copy icon */
+    padding: var(--space-md) 52px var(--space-md) var(--space-md);
     box-sizing: border-box;
-    border: 1px solid #ff9900;
-    border-radius: 0;
+    border: var(--border);
+    border-radius: var(--radius-sm);
     font-size: 12px;
-    background-color: #222;
-    color: #ff9900;
+    background-color: var(--color-surface-elevated);
+    color: var(--color-text);
     font-family: monospace;
 }
 
-#copy-invoice-button {
-    background: #ff9900; /* Button background color */
-    border: none; /* No border */
-    padding: 10px; /* Padding for comfort */
-    cursor: pointer; /* Pointer cursor on hover */
-    color: #000; /* Text color */
-    width: 100%; /* Full width */
-    margin: 5px 0; /* Margin for spacing */
-
-    font-size: 16px; /* Font size to match the app */
+.info-button {
+    background: none;
+    border: none;
+    color: var(--color-text);
+    font-size: 21px;
+    width: 21px;
+    height: 21px;
+    cursor: pointer;
+    margin-left: auto;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-#copy-invoice-button:hover {
-    background: #e68a00; /* Darker shade on hover */
+.info-button:hover {
+    color: #fff;
 }
 
-#copy-message {
-    color: #ff9900; /* Color for the copied message */
-    font-size: 14px; /* Font size for the message */
-    margin-top: 5px; /* Space above the message */
+.info-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 /* Notyf: bottom-left position */
 .notyf {
     align-items: flex-start !important;
     justify-content: flex-end !important;
-    padding-left: 21px !important;
-    padding-bottom: 21px !important;
+    padding-left: var(--space-2xl) !important;
+    padding-bottom: var(--space-2xl) !important;
 }
 
-/* Notyf toast overrides to match app theme */
 .notyf__toast,
 .notyf__toast--success,
 [class*="notyf"] .notyf__toast--success {
-    background: #222 !important;
-    background-color: #222 !important;
-    color: #ff9900 !important;
-    border: 1px solid #ff9900 !important;
-    border-radius: 0 !important;
+    background: var(--color-surface-elevated) !important;
+    background-color: var(--color-surface-elevated) !important;
+    color: var(--color-primary) !important;
+    border: var(--border) !important;
+    border-radius: var(--radius-sm) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
     font-family: monospace !important;
 }
 
 .notyf__message {
-    color: #ff9900 !important;
+    color: var(--color-primary) !important;
 }
 
 .notyf__toast {
@@ -556,19 +697,27 @@ li:hover {
 }
 
 .notyf__toast--error .notyf__message {
-    color: #e74c3c !important;
+    color: var(--color-danger) !important;
 }
 
 .send-message {
-    margin-top: 10px;
+    margin-top: var(--space-md);
     font-size: 14px;
     min-height: 1.2em;
 }
 
 .send-message.error {
-    color: #e74c3c;
+    color: var(--color-danger);
 }
 
 .send-message.success {
-    color: #27ae60;
+    color: var(--color-success);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #loading .fa-spin,
+    .invoice-waiting .fa-spin {
+        animation: none;
+    }
 }

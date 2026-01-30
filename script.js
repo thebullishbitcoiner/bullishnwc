@@ -192,25 +192,24 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateConnectionList() {
         connectionList.innerHTML = '';
         if (connections.length === 0) {
-            defaultMessageDiv.style.display = 'block'; // Show default message
+            defaultMessageDiv.classList.remove('hidden');
+            defaultMessageDiv.classList.add('visible');
         } else {
-            defaultMessageDiv.style.display = 'none'; // Hide default message
+            defaultMessageDiv.classList.add('hidden');
+            defaultMessageDiv.classList.remove('visible');
             connections.forEach(({ name, url }, index) => {
                 const li = document.createElement('li');
-                li.style.display = 'flex'; // Use flexbox for alignment
-                li.style.justifyContent = 'space-between'; // Space between name and button
-                li.style.alignItems = 'center'; // Center items vertically
+                li.className = 'connection-list-item';
 
-                // Create a span for the wallet name
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = name;
 
-                // Create a delete button
                 const deleteButton = document.createElement('button');
-                deleteButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome "x" icon
-                deleteButton.className = 'delete-button'; // Add a class for styling
+                deleteButton.innerHTML = '<i class="fas fa-times"></i>';
+                deleteButton.className = 'delete-button';
+                deleteButton.setAttribute('aria-label', `Remove ${name}`);
                 deleteButton.addEventListener('click', (event) => {
-                    event.stopPropagation(); // Prevent the click from triggering the li event
+                    event.stopPropagation();
                     const conn = connections[index];
                     if (!conn) return;
                     deleteConnectionMessage.textContent = `Remove [${conn.name}]? This cannot be undone.`;
@@ -218,11 +217,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     deleteConnectionModal.style.display = 'block';
                 });
 
-                li.appendChild(nameSpan); // Append the wallet name to the list item
-                li.appendChild(deleteButton); // Append the delete button to the list item
+                li.appendChild(nameSpan);
+                li.appendChild(deleteButton);
                 li.addEventListener('click', () => {
                     loadWallet(url);
-                    flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                    flyoutMenu.classList.remove('visible');
                 });
                 connectionList.appendChild(li);
             });
@@ -239,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
         stopInvoicePolling();
         walletInfo.classList.add('hidden');
         walletInfo.style.display = 'none';
-        balanceDiv.textContent = '';
+        balanceDiv.innerHTML = '';
         transactionsDiv.innerHTML = '';
         const loadingEl = document.getElementById('loading');
         if (loadingEl) loadingEl.classList.remove('visible');
@@ -353,13 +352,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadBalance(currentConnection) {
         try {
-            // Fetch the balance
             const balanceResponse = await currentConnection.getBalance();
-            const balance = Math.floor(balanceResponse.balance / 1000); // Convert from millisats to whole sats
-            balanceDiv.textContent = `${balance} sats`; // Display balance as a whole number
+            const balance = Math.floor(balanceResponse.balance / 1000);
+            balanceDiv.innerHTML = `
+                <div class="balance-card">
+                    <span class="balance-card__amount">${balance}</span>
+                    <span class="balance-card__unit">sats</span>
+                </div>
+            `;
         } catch (error) {
             console.error("Error loading balance:", error);
-            balanceDiv.textContent = "Error loading balance.";
+            balanceDiv.innerHTML = '<p class="balance-card balance-card--error">Error loading balance.</p>';
         }
     } // End loadBalance()
 
@@ -388,22 +391,17 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             transactions.forEach(tx => {
-                // Create a div for each transaction
                 const transactionDiv = document.createElement('div');
-
-                // Determine the arrow based on the transaction type
-                const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
-
-                // Format the transaction details
-                const timeString = timeAgo(tx.created_at); // Get the human-readable time string
-
+                const isOutgoing = tx.type === 'outgoing';
+                const directionClass = isOutgoing ? 'transaction-row--outgoing' : 'transaction-row--incoming';
+                const arrow = isOutgoing ? '<i class="fas fa-arrow-up" aria-hidden="true"></i>' : '<i class="fas fa-arrow-down" aria-hidden="true"></i>';
+                const timeString = timeAgo(tx.created_at);
+                const amountSats = tx.amount / 1000;
+                transactionDiv.className = `transaction-row ${directionClass}`;
                 transactionDiv.innerHTML = `
-                    <strong></strong> ${arrow} ${tx.amount / 1000} sats 
-                    <span style="float: right;">${timeString}</span>
-                    <br>
-                    <hr style="background-color: #333; height: 2px; border: none;">
+                    <span class="transaction-row__direction">${arrow} ${amountSats} sats</span>
+                    <span class="transaction-row__time">${timeString}</span>
                 `;
-                // Append the transaction div to the transactionsDiv
                 transactionsDiv.appendChild(transactionDiv);
             });
         } catch (error) {
