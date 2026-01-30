@@ -8,11 +8,315 @@
 
     <title>bullishNWC</title>
 
-    <link rel="icon" href="bullishnwc-1.0.png" type="image/png">
+    <link rel="icon" href="bullishnwc-icon.png" type="image/png">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-   
+    <script type="module" src="https://unpkg.com/bitcoin-qr@1.4.1/dist/bitcoin-qr/bitcoin-qr.esm.js"></script>
+
+    <script type="module">
+        import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
+
+        let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
+        let currentConnection = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const menuButton = document.getElementById('menu-button');
+            const flyoutMenu = document.getElementById('flyout-menu');
+            const addConnectionButton = document.getElementById('add-connection');
+            const walletUrlInput = document.getElementById('wallet-url');
+            const walletNameInput = document.getElementById('wallet-name');
+            const connectionList = document.getElementById('connection-list');
+            const walletInfo = document.getElementById('wallet-info');
+            const balanceDiv = document.getElementById('balance');
+            const transactionsDiv = document.getElementById('transactions');
+            const defaultMessageDiv = document.getElementById('default-message');
+
+            // For the info modal
+            const infoButton = document.getElementById('info-button');
+            const infoModal = document.getElementById('info-modal');
+            const closeButton = document.querySelector('.close-button');
+
+            // Load the current connection from localStorage
+            const savedConnectionUrl = localStorage.getItem('current_connection_url');
+            if (savedConnectionUrl) {
+                const savedConnection = connections.find(conn => conn.url === savedConnectionUrl);
+                if (savedConnection) {
+                    loadWallet(savedConnection.url); // Load the saved connection
+                }
+            }
+
+            infoButton.addEventListener('click', async () => {
+                try {
+                    const response = await currentConnection.getInfo();
+
+                    // Get the methods list element
+                    const methodsList = document.getElementById('methods-list');
+                    methodsList.innerHTML = ''; // Clear any existing items
+
+                    // Loop through the response.methods array and create list items
+                    if (Array.isArray(response.methods) && response.methods.length > 0) {
+                        response.methods.forEach(method => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = method; // Set the text content to the method name
+                            methodsList.appendChild(listItem); // Append the list item to the unordered list
+                        });
+                    } else {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = 'No methods available.';
+                        methodsList.appendChild(listItem);
+                    }
+
+                    const walletServiceInfo = await currentConnection.getWalletServiceInfo();
+
+                    infoModal.style.display = 'block';
+                } catch (error) {
+                    console.error("Error fetching connection info:", error);
+                    document.getElementById('connection-info').textContent = "Error fetching connection info.";
+
+                    // Clear methods list in case of error
+                    const methodsList = document.getElementById('methods-list');
+                    methodsList.innerHTML = ''; // Clear any existing items
+                    const listItem = document.createElement('li');
+                    listItem.textContent = 'Error fetching methods.';
+                    methodsList.appendChild(listItem);
+
+                    infoModal.style.display = 'block';
+                }
+            });
+
+            // Close the modal when the close button is clicked
+            closeButton.addEventListener('click', () => {
+                infoModal.style.display = 'none';
+            });
+
+            menuButton.addEventListener('click', () => {
+                const isVisible = flyoutMenu.classList.contains('visible');
+                if (isVisible) {
+                    flyoutMenu.classList.remove('visible');
+                } else {
+                    flyoutMenu.classList.add('visible');
+                }
+            });
+
+            addConnectionButton.addEventListener('click', () => {
+                const walletUrl = walletUrlInput.value;
+                const walletName = walletNameInput.value;
+
+                if (!walletUrl || !walletName) {
+                    alert('Please enter both wallet name and URL');
+                    return;
+                }
+
+                if (connections.some(conn => conn.url === walletUrl)) {
+                    alert('This wallet URL is already added');
+                    return;
+                }
+
+                const newConnection = { name: walletName, url: walletUrl };
+                connections.push(newConnection);
+                localStorage.setItem('nwc_connections', JSON.stringify(connections));
+                updateConnectionList();
+                walletUrlInput.value = '';
+                walletNameInput.value = '';
+            });
+
+            function updateConnectionList() {
+                connectionList.innerHTML = '';
+                if (connections.length === 0) {
+                    defaultMessageDiv.style.display = 'block'; // Show default message
+                } else {
+                    defaultMessageDiv.style.display = 'none'; // Hide default message
+                    connections.forEach(({ name, url }, index) => {
+                        const li = document.createElement('li');
+                        li.style.display = 'flex'; // Use flexbox for alignment
+                        li.style.justifyContent = 'space-between'; // Space between name and button
+                        li.style.alignItems = 'center'; // Center items vertically
+
+                        // Create a span for the wallet name
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = name;
+
+                        // Create a delete button
+                        const deleteButton = document.createElement('button');
+                        deleteButton.innerHTML = '<i class="fas fa-times"></i>'; // Font Awesome "x" icon
+                        deleteButton.className = 'delete-button'; // Add a class for styling
+                        deleteButton.addEventListener('click', (event) => {
+                            event.stopPropagation(); // Prevent the click from triggering the li event
+                            deleteConnection(index);
+                        });
+
+                        li.appendChild(nameSpan); // Append the wallet name to the list item
+                        li.appendChild(deleteButton); // Append the delete button to the list item
+                        li.addEventListener('click', () => {
+                            loadWallet(url);
+                            flyoutMenu.classList.remove('visible'); // Close the flyout menu
+                        });
+                        connectionList.appendChild(li);
+                    });
+                }
+            }
+
+            function deleteConnection(index) {
+                const connection = connections[index];
+                connections.splice(index, 1);
+                localStorage.setItem('nwc_connections', JSON.stringify(connections));
+                updateConnectionList();
+            }
+
+            function timeAgo(timestamp) {
+                // Calculate the difference in seconds
+                const seconds = Math.floor(Date.now() / 1000) - timestamp;
+
+                let interval = Math.floor(seconds / 31536000);
+                if (interval > 1) return interval + " years ago";
+                interval = Math.floor(seconds / 2592000);
+                if (interval > 1) return interval + " months ago";
+                interval = Math.floor(seconds / 86400);
+
+                // Check for the specific case of 1 day ago
+                if (interval === 1 && seconds >= 86400 && seconds < 172800) {
+                    return "1 day ago";
+                }
+
+                if (interval > 1) return interval + " days ago";
+                interval = Math.floor(seconds / 3600);
+                if (interval > 1) return interval + " hours ago";
+                interval = Math.floor(seconds / 60);
+                if (interval > 1) return interval + " minutes ago";
+                return seconds < 30 ? "just now" : seconds + " seconds ago";
+            }
+
+            async function loadWallet(url) {
+                const nwcUrl = url;
+                currentConnection = new nwc.NWCClient({
+                    nostrWalletConnectUrl: nwcUrl,
+                });
+
+                const loadingDiv = document.getElementById('loading');
+                loadingDiv.classList.add('visible');
+                walletInfo.style.display = 'none';
+
+                try {
+                    // Fetch the balance
+                    const balanceResponse = await currentConnection.getBalance();
+                    const balance = Math.floor(balanceResponse.balance / 1000);
+                    balanceDiv.textContent = `${balance} sats`;
+
+                    const walletName = connections.find(conn => conn.url === url).name;
+                    document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
+
+                    const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
+
+                    // Fetch the transactions
+                    const transactionsResponse = await currentConnection.listTransactions({
+                        from: Math.floor(new Date().getTime() / 1000 - ONE_WEEK_IN_SECONDS),
+                        until: Math.ceil(new Date().getTime() / 1000),
+                        limit: 30,
+                    });
+
+                    transactionsDiv.innerHTML = '';
+
+                    if (!Array.isArray(transactionsResponse.transactions)) {
+                        throw new Error('Invalid transactions data received');
+                    }
+
+                    const transactions = transactionsResponse.transactions;
+                    if (transactions.length === 0) {
+                        transactionsDiv.innerHTML = "No transactions found.";
+                    } else {
+                        transactions.forEach(tx => {
+                            const transactionDiv = document.createElement('div');
+                            const arrow = tx.type === 'outgoing' ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>';
+                            const timeString = timeAgo(tx.created_at);
+
+                            transactionDiv.innerHTML = `
+                                <strong></strong> ${arrow} ${tx.amount / 1000} sats 
+                                <span style="float: right;">${timeString}</span>
+                                <br>
+                                <hr style="background-color: #333; height: 2px; border: none;">
+                            `;
+                            transactionsDiv.appendChild(transactionDiv);
+                        });
+                    }
+
+                    walletInfo.classList.remove('hidden');
+                    walletInfo.style.display = 'flex';
+                    localStorage.setItem('current_connection_url', url);
+                } catch (error) {
+                    console.error('Error loading wallet:', error);
+                    transactionsDiv.innerHTML = "Error loading transactions.";
+                } finally {
+                    loadingDiv.classList.remove('visible');
+                }
+            }
+
+            async function sendFunds() {
+                const invoice = prompt("Enter lightning invoice:");
+
+                if (invoice) {
+                    try {
+                        const response = await currentConnection.payInvoice({ invoice });
+                        alert(`Transaction successful: ${response.preimage}`);
+                        loadWallet(currentConnection.options.nostrWalletConnectUrl);
+                    } catch (error) {
+                        alert(`Error sending funds: ${error.message}`);
+                    }
+                }
+            }
+
+            async function receiveFunds() {
+                const amount = prompt("Enter amount of sats:");
+
+                if (amount) {
+                    try {
+                        const response = await currentConnection.makeInvoice({
+                            amount: amount * 1000, // convert to millisats
+                        });
+                        const invoice = response.invoice;
+
+                        // Show the modal with the invoice
+                        const invoiceTextarea = document.getElementById('invoice-textarea');
+                        invoiceTextarea.value = invoice;
+
+                        // Set the QR code
+                        const qrElement = document.getElementById('invoice-qr');
+                        qrElement.lightning = invoice;
+
+                        document.getElementById('invoice-modal').style.display = 'block';
+                    } catch (error) {
+                        console.error("Error in receiveFunds:", error);
+                        alert(`Error: ${error.message}`);
+                    }
+                }
+            }
+
+            // Copy button functionality
+            document.getElementById('copy-invoice-button').addEventListener('click', async () => {
+                const invoiceTextarea = document.getElementById('invoice-textarea');
+                await navigator.clipboard.writeText(invoiceTextarea.value); // Copy the invoice text
+
+                const copyButton = document.getElementById('copy-invoice-button');
+                const originalButtonText = copyButton.textContent; // Store the original button text
+                copyButton.textContent = 'Copied!'; // Change button text to "Copied!"
+
+                setTimeout(() => {
+                    copyButton.textContent = originalButtonText; // Revert back to original text after 1 second
+                }, 1000);
+            });
+
+            // Close modal functionality
+            document.getElementById('close-invoice-modal').addEventListener('click', () => {
+                document.getElementById('invoice-modal').style.display = 'none'; // Hide the modal
+            });
+
+            document.getElementById('send-button').addEventListener('click', sendFunds);
+            document.getElementById('receive-button').addEventListener('click', receiveFunds);
+
+            // Initialize the connection list on page load
+            updateConnectionList();
+        });
+    </script>
 </head>
 
 <body>
@@ -59,7 +363,7 @@
                     <button id="send-button">Send</button>
                     <button id="receive-button">Receive</button>
                 </div>
-                <h3 style="margin-bottom: 0px;">Transactions</h3>
+                <h3>Transactions</h3>
                 <div id="transactions-container">
                     <div id="transactions"></div>
                 </div>
@@ -110,9 +414,14 @@
             </div>
 
             <div id="invoice-modal" class="modal">
-                <div class="modal-content">
+                <div class="modal-content" style="max-width: 350px;">
                     <span class="close-button" id="close-invoice-modal">&times;</span>
                     <h2>Invoice</h2>
+                    <div id="qr-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
+                        <bitcoin-qr id="invoice-qr" width="300" height="300" lightning="lnbc..." dots-type="square"
+                            corners-square-type="square" image="bullishnwc-icon.png" image-size="40"
+                            image-margin="5" qr-error-correction-level="H"></bitcoin-qr>
+                    </div>
                     <textarea id="invoice-textarea" rows="7" readonly></textarea>
                     <button id="copy-invoice-button">Copy</button>
                     <p id="copy-message" style="display: none;">Copied!</p>
@@ -123,8 +432,6 @@
 
         </div>
     </div>
-
-    <script src="script.js" type="module"></script>
 
 </body>
 
