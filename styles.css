@@ -54,7 +54,7 @@ body {
 
 .wallet-name-header {
     margin: 0 0 8px 0;
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #ff9900;
 }
@@ -243,6 +243,12 @@ li:hover {
 #button-container button {
     flex: 1;
     margin-right: 5px;
+    padding: 14px;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 #button-container button:last-child {

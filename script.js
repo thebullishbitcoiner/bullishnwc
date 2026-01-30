@@ -41,7 +41,11 @@ let lastPaymentToastAt = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById('app-version');
-    if (el && typeof __APP_VERSION__ !== 'undefined') el.textContent = __APP_VERSION__;
+    if (el) {
+        fetch('manifest.json').then((res) => res.ok ? res.json() : {}).then((manifest) => {
+            if (manifest && manifest.version) el.textContent = manifest.version;
+        }).catch(() => {});
+    }
 
     const menuButton = document.getElementById('menu-button');
     const flyoutMenu = document.getElementById('flyout-menu');
