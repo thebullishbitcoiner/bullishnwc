@@ -114,6 +114,27 @@ body {
     align-items: center;
 }
 
+.connection-list-item__name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.connection-badge {
+    font-size: 0.7em;
+    padding: 2px var(--space-xs);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.connection-badge--test {
+    background: var(--color-surface-hover);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-text-muted);
+}
+
 .add-container {
     display: flex;
     flex-direction: column;
@@ -349,22 +370,119 @@ li:hover {
 /* Transaction rows */
 .transaction-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-md);
+    flex-direction: column;
+    gap: var(--space-xs);
     padding: var(--space-sm) 0;
     border-bottom: 1px solid var(--color-surface-hover);
     font-size: 14px;
+    cursor: pointer;
+}
+
+.transaction-row:hover {
+    background: var(--color-surface-hover);
+    margin: 0 calc(-1 * var(--space-sm));
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
 }
 
 .transaction-row:last-child {
     border-bottom: none;
 }
 
+.transaction-row__main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
 .transaction-row__direction {
     display: inline-flex;
     align-items: center;
     gap: var(--space-xs);
+}
+
+.transaction-row__description {
+    font-size: 0.85em;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Transaction detail modal */
+.transaction-detail-list {
+    margin: 0;
+    font-size: 14px;
+}
+
+.transaction-detail-list dt {
+    color: var(--color-text-muted);
+    font-weight: normal;
+    margin-top: var(--space-md);
+}
+
+.transaction-detail-list dt:first-child {
+    margin-top: 0;
+}
+
+.transaction-detail-list dd {
+    margin: var(--space-xs) 0 0 0;
+    word-break: break-all;
+}
+
+.transaction-detail-list dd + dt {
+    margin-top: var(--space-sm);
+}
+
+.transaction-detail-invoice-dd {
+    margin-top: var(--space-xs);
+}
+
+.transaction-detail-invoice-wrapper {
+    position: relative;
+    display: block;
+    margin-top: var(--space-xs);
+}
+
+.transaction-detail-invoice-wrapper input {
+    width: 100%;
+    padding: var(--space-sm) 44px var(--space-sm) var(--space-sm);
+    box-sizing: border-box;
+    background-color: var(--color-surface-elevated);
+    border: var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-family: monospace;
+    font-size: 11px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.transaction-detail-invoice-wrapper .copy-icon-button {
+    position: absolute;
+    top: 50%;
+    right: var(--space-sm);
+    transform: translateY(-50%);
+    width: auto;
+    min-width: auto;
+    margin: 0;
+    padding: 6px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.transaction-detail-invoice-wrapper .copy-icon-button:hover {
+    color: var(--color-primary);
+}
+
+.transaction-detail-invoice-wrapper .copy-icon-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .transaction-row--incoming .transaction-row__direction,
@@ -676,9 +794,10 @@ li:hover {
     padding-bottom: var(--space-2xl) !important;
 }
 
-.notyf__toast,
-.notyf__toast--success,
-[class*="notyf"] .notyf__toast--success {
+/* Override Notyf toast width – use higher specificity so it wins over library + its media query */
+body .notyf .notyf__toast,
+body .notyf .notyf__toast--success,
+body [class*="notyf"] .notyf__toast--success {
     background: var(--color-surface-elevated) !important;
     background-color: var(--color-surface-elevated) !important;
     color: var(--color-primary) !important;
@@ -686,6 +805,9 @@ li:hover {
     border-radius: var(--radius-sm) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
     font-family: monospace !important;
+    max-width: min(360px, calc(100vw - 2 * var(--space-2xl))) !important;
+    min-width: 120px !important;
+    width: auto !important;
 }
 
 .notyf__message {
@@ -694,6 +816,16 @@ li:hover {
 
 .notyf__toast {
     z-index: 1100 !important;
+}
+
+/* Override Notyf’s mobile full-width toast */
+@media (max-width: 480px) {
+    body .notyf .notyf__toast {
+        max-width: min(360px, calc(100vw - 2 * var(--space-2xl))) !important;
+        min-width: 120px !important;
+        width: auto !important;
+        border-radius: var(--radius-sm) !important;
+    }
 }
 
 .notyf__toast--error .notyf__message {

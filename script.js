@@ -26,6 +26,8 @@ let lastToastPaymentHash = null;
 let currentInvoicePaymentHash = null;
 /** Timestamp of last payment toast (avoids duplicate when notification arrives right after polling). */
 let lastPaymentToastAt = 0;
+/** Last loaded transactions (for detail modal). */
+let lastTransactions = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById('app-version');
@@ -59,6 +61,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const infoButton = document.getElementById('info-button');
     const infoModal = document.getElementById('info-modal');
     const closeInfoModalButton = document.getElementById('close-info-modal');
+
+    // Transaction detail modal
+    const transactionDetailModal = document.getElementById('transaction-detail-modal');
+    const transactionDetailList = document.getElementById('transaction-detail-list');
+    const closeTransactionDetailButton = document.getElementById('close-transaction-detail-modal');
 
     // Load the current connection from localStorage
     const savedConnectionUrl = localStorage.getItem('bullishnwc_currentConnection');
@@ -113,6 +120,69 @@ document.addEventListener("DOMContentLoaded", () => {
         infoModal.style.display = 'none';
     });
 
+    closeTransactionDetailButton.addEventListener('click', () => {
+        transactionDetailModal.style.display = 'none';
+    });
+
+    function showTransactionDetail(tx) {
+        const list = transactionDetailList;
+        list.innerHTML = '';
+        const add = (label, value) => {
+            if (value === undefined || value === null || value === '') return;
+            const dt = document.createElement('dt');
+            dt.textContent = label;
+            const dd = document.createElement('dd');
+            dd.textContent = typeof value === 'object' ? JSON.stringify(value) : String(value);
+            list.appendChild(dt);
+            list.appendChild(dd);
+        };
+        add('Type', tx.type);
+        add('State', tx.state);
+        add('Amount', `${tx.amount / 1000} sats`);
+        if (tx.fees_paid != null && tx.fees_paid > 0) add('Fees paid', `${tx.fees_paid / 1000} sats`);
+        add('Description', tx.description);
+        if (tx.description_hash) add('Description hash', tx.description_hash);
+        add('Payment hash', tx.payment_hash);
+        if (tx.preimage) add('Preimage', tx.preimage);
+        add('Created', new Date(tx.created_at * 1000).toLocaleString());
+        if (tx.settled_at) add('Settled', new Date(tx.settled_at * 1000).toLocaleString());
+        if (tx.expires_at) add('Expires', new Date(tx.expires_at * 1000).toLocaleString());
+        if (tx.invoice) {
+            const dt = document.createElement('dt');
+            dt.textContent = 'Invoice';
+            list.appendChild(dt);
+            const dd = document.createElement('dd');
+            dd.className = 'transaction-detail-invoice-dd';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'transaction-detail-invoice-wrapper';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.readOnly = true;
+            input.value = tx.invoice;
+            input.setAttribute('aria-label', 'Invoice');
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'copy-icon-button';
+            copyBtn.title = 'Copy invoice';
+            copyBtn.setAttribute('aria-label', 'Copy invoice');
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(tx.invoice);
+                    notyf.success('Copied!');
+                } catch {
+                    notyf.error('Could not copy');
+                }
+            });
+            wrapper.appendChild(input);
+            wrapper.appendChild(copyBtn);
+            dd.appendChild(wrapper);
+            list.appendChild(dd);
+        }
+        if (tx.metadata && Object.keys(tx.metadata).length > 0) add('Metadata', tx.metadata);
+        transactionDetailModal.style.display = 'block';
+    }
+
     menuButton.addEventListener('click', () => {
         flyoutMenu.classList.toggle('visible'); // Toggle the visible class
     });
@@ -148,7 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const walletName = walletNameInput.value.trim();
 
         if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
-            const newConnection = { name: walletName, url: walletUrl };
+            const newConnection = { name: walletName, url: walletUrl, isTest: false };
             connections.push(newConnection);
             localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
             updateConnectionList();
@@ -175,7 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 n += 1;
                 name = `Test Wallet ${n}`;
             }
-            connections.push({ name, url });
+            connections.push({ name, url, isTest: true });
             localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
             updateConnectionList();
             flyoutMenu.classList.remove('visible');
@@ -197,12 +267,22 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             defaultMessageDiv.classList.add('hidden');
             defaultMessageDiv.classList.remove('visible');
-            connections.forEach(({ name, url }, index) => {
+            connections.forEach((conn, index) => {
+                const { name, url, isTest } = conn;
                 const li = document.createElement('li');
                 li.className = 'connection-list-item';
 
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = name;
+                const nameWrapper = document.createElement('span');
+                nameWrapper.className = 'connection-list-item__name';
+                nameWrapper.textContent = name;
+                if (isTest === true) {
+                    const badge = document.createElement('span');
+                    badge.className = 'connection-badge connection-badge--test';
+                    badge.textContent = 'Test';
+                    badge.setAttribute('aria-label', 'Test wallet');
+                    nameWrapper.appendChild(document.createTextNode(' '));
+                    nameWrapper.appendChild(badge);
+                }
 
                 const deleteButton = document.createElement('button');
                 deleteButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -210,14 +290,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 deleteButton.setAttribute('aria-label', `Remove ${name}`);
                 deleteButton.addEventListener('click', (event) => {
                     event.stopPropagation();
-                    const conn = connections[index];
-                    if (!conn) return;
-                    deleteConnectionMessage.textContent = `Remove [${conn.name}]? This cannot be undone.`;
+                    const c = connections[index];
+                    if (!c) return;
+                    deleteConnectionMessage.textContent = `Remove [${c.name}]? This cannot be undone.`;
                     pendingDeleteConnectionIndex = index;
                     deleteConnectionModal.style.display = 'block';
                 });
 
-                li.appendChild(nameSpan);
+                li.appendChild(nameWrapper);
                 li.appendChild(deleteButton);
                 li.addEventListener('click', () => {
                     loadWallet(url);
@@ -252,6 +332,12 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
         if (wasCurrentConnection) resetToNoConnection();
         updateConnectionList();
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function timeAgo(timestamp) {
@@ -380,28 +466,33 @@ document.addEventListener("DOMContentLoaded", () => {
             // Clear previous transactions
             transactionsDiv.innerHTML = '';
 
-            // Assuming transactions are in a property called 'transactions'
             const transactions = transactionsResponse.transactions;
 
-            // Check if transactions is an array
             if (!Array.isArray(transactions)) {
                 console.error("Expected transactions to be an array, but got:", transactions);
                 transactionsDiv.innerHTML = "No transactions found.";
-                return; // Exit the function if transactions is not an array
+                return;
             }
 
-            transactions.forEach(tx => {
+            lastTransactions = transactions;
+
+            transactions.forEach((tx, index) => {
                 const transactionDiv = document.createElement('div');
                 const isOutgoing = tx.type === 'outgoing';
                 const directionClass = isOutgoing ? 'transaction-row--outgoing' : 'transaction-row--incoming';
                 const arrow = isOutgoing ? '<i class="fas fa-arrow-up" aria-hidden="true"></i>' : '<i class="fas fa-arrow-down" aria-hidden="true"></i>';
                 const timeString = timeAgo(tx.created_at);
                 const amountSats = tx.amount / 1000;
+                const description = tx.description ? tx.description.trim() : '';
                 transactionDiv.className = `transaction-row ${directionClass}`;
                 transactionDiv.innerHTML = `
-                    <span class="transaction-row__direction">${arrow} ${amountSats} sats</span>
-                    <span class="transaction-row__time">${timeString}</span>
+                    <div class="transaction-row__main">
+                        <span class="transaction-row__direction">${arrow} ${amountSats} sats</span>
+                        <span class="transaction-row__time">${timeString}</span>
+                    </div>
+                    ${description ? `<div class="transaction-row__description" title="${escapeHtml(description)}">${escapeHtml(description)}</div>` : ''}
                 `;
+                transactionDiv.addEventListener('click', () => showTransactionDetail(tx));
                 transactionsDiv.appendChild(transactionDiv);
             });
         } catch (error) {
