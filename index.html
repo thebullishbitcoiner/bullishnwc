@@ -11,6 +11,7 @@
     <link rel="icon" href="bullishnwc-icon.png" type="image/png">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script type="module" src="https://unpkg.com/bitcoin-qr@1.4.1/dist/bitcoin-qr/bitcoin-qr.esm.js"></script>
 
@@ -50,7 +51,7 @@
             </div>
             <div id="wallet-info" class="hidden">
                 <div id="wallet-name-container" style="display: flex; align-items: center;">
-                    <strong><span id="wallet-name-display"></span></strong>
+                    <h2 id="wallet-name-display" class="wallet-name-header"></h2>
                     <button id="info-button" class="info-button">
                         <i class="fas fa-info-circle"></i>
                     </button>
@@ -88,10 +89,28 @@
             <!-- Modal for Connection Info -->
             <div id="info-modal" class="modal hidden">
                 <div class="modal-content">
-                    <span class="close-button">&times;</span>
+                    <span class="close-button" id="close-info-modal">&times;</span>
                     <h2 style="margin-top: 0px;">Connection Info</h2>
                     <h4>Available Methods:</h4>
                     <ul id="methods-list"></ul>
+                </div>
+            </div>
+
+            <!-- Send modal (invoice or lightning address) -->
+            <div id="send-modal" class="modal hidden">
+                <div class="modal-content modal-content--narrow">
+                    <span class="close-button" id="close-send-modal">&times;</span>
+                    <h2 style="margin-top: 0;">Send</h2>
+                    <div class="add-container">
+                        <div class="input-with-icon">
+                            <textarea id="send-invoice" placeholder="Paste lightning invoice or lightning address (e.g. user@domain.com)" rows="5"></textarea>
+                            <button type="button" id="send-paste-button" class="paste-icon-button" title="Paste from clipboard" aria-label="Paste from clipboard"><i class="fas fa-paste"></i></button>
+                        </div>
+                        <label for="send-amount">Amount (sats) — required for lightning address</label>
+                        <input type="number" id="send-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
+                        <p id="send-message" class="send-message hidden"></p>
+                        <button id="send-pay-button">Pay</button>
+                    </div>
                 </div>
             </div>
 
@@ -111,7 +130,7 @@
             </div>
 
             <div id="invoice-modal" class="modal">
-                <div class="modal-content" style="max-width: 350px;">
+                <div class="modal-content modal-content--invoice">
                     <span class="close-button" id="close-invoice-modal">&times;</span>
                     <h2>Invoice</h2>
                     <div id="qr-container" style="display: flex; justify-content: center; margin-bottom: 20px;">
@@ -119,13 +138,13 @@
                             corners-square-type="square" image="bullishnwc-icon.png" image-size="40"
                             image-margin="5" qr-error-correction-level="H"></bitcoin-qr>
                     </div>
-                    <textarea id="invoice-textarea" rows="7" readonly></textarea>
-                    <button id="copy-invoice-button">Copy</button>
-                    <p id="copy-message" style="display: none;">Copied!</p>
+                    <div class="invoice-input-wrapper">
+                        <input type="text" id="invoice-textarea" readonly>
+                        <button type="button" id="copy-invoice-icon" class="copy-icon-button" title="Copy invoice" aria-label="Copy invoice"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <p id="invoice-waiting" class="invoice-waiting" aria-live="polite"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Waiting for payment...</p>
                 </div>
             </div>
-
-            <div id="payment-toast" class="payment-toast hidden" aria-live="polite"></div>
 
         </div>
     </div>

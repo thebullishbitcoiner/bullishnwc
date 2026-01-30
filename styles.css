@@ -52,6 +52,13 @@ body {
     /* Optional: change the color of the version text */
 }
 
+.wallet-name-header {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ff9900;
+}
+
 .hidden {
     display: none;
 }
@@ -332,9 +339,16 @@ li:hover {
     padding: 20px;
     border: 1px solid #ff9900; /* Border color */
     border-radius: 0px;
-    width: 80%; /* Could be more or less, depending on screen size */
+    max-width: 600px; /* Same as .terminal main UI */
+    width: 90%;
+    box-sizing: border-box;
     color: #ff9900; /* Text color */
     font-family: monospace; /* Match the font */
+}
+
+.modal-content--narrow,
+.modal-content--invoice {
+    max-width: 350px; /* Match receive/invoice modal */
 }
 
 .close-button {
@@ -347,6 +361,92 @@ li:hover {
 
 .close-button:hover {
     color: #fff; /* Change color on hover */
+}
+
+.input-with-icon {
+    position: relative;
+    display: block;
+}
+
+.input-with-icon textarea {
+    padding-right: 40px;
+    display: block;
+}
+
+#send-paste-button.paste-icon-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    bottom: auto;
+    width: auto;
+    min-width: auto;
+    margin: 0;
+    padding: 6px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #965a00;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#send-paste-button.paste-icon-button:hover {
+    color: #ff9900;
+}
+
+.invoice-input-wrapper {
+    position: relative;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.invoice-input-wrapper input {
+    width: 100%;
+    padding: 10px 48px 10px 10px;
+    box-sizing: border-box;
+    background-color: #222;
+    border: 1px solid #ff9900;
+    color: #ff9900;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+#copy-invoice-icon.copy-icon-button {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    left: auto;
+    bottom: auto;
+    width: auto;
+    min-width: auto;
+    margin: 0;
+    padding: 6px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #965a00;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#copy-invoice-icon.copy-icon-button:hover {
+    color: #ff9900;
+}
+
+.invoice-waiting {
+    margin: 16px 0 0 0;
+    font-size: 14px;
+    color: #965a00;
+}
+
+.invoice-waiting i {
+    margin-right: 8px;
+}
+
+.invoice-waiting.hidden {
+    display: none;
 }
 
 .info-button {
@@ -368,16 +468,16 @@ li:hover {
     color: #fff; /* Change color on hover */
 }
 
-#invoice-textarea {
-    width: 100%; /* Full width */
-    padding: 10px; /* Padding for comfort */
-    border: 1px solid #ff9900; /* Border color to match the app */
-    border-radius: 0px; 
-    font-size: 16px; /* Font size to match the app */
-    background-color: #222; /* Background color to match the app */
-    color: #ff9900; /* Text color to match the app */
-    resize: none; /* Disable resizing */
-    margin-bottom: 10px; /* Space below the textarea */
+.invoice-input-wrapper #invoice-textarea {
+    width: 100%;
+    padding: 10px 52px 10px 10px; /* Extra right padding so text doesn't go behind copy icon */
+    box-sizing: border-box;
+    border: 1px solid #ff9900;
+    border-radius: 0;
+    font-size: 12px;
+    background-color: #222;
+    color: #ff9900;
+    font-family: monospace;
 }
 
 #copy-invoice-button {
@@ -402,23 +502,49 @@ li:hover {
     margin-top: 5px; /* Space above the message */
 }
 
-.payment-toast {
-    display: none;
-    position: fixed;
-    bottom: 21px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #222;
-    color: #ff9900;
-    border: 1px solid #ff9900;
-    padding: 12px 21px;
-    border-radius: 0;
-    z-index: 1100; /* Above modals (1000) so toast is visible when invoice modal is open */
-    font-size: 14px;
-    max-width: 90%;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+/* Notyf: bottom-left position */
+.notyf {
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    padding-left: 21px !important;
+    padding-bottom: 21px !important;
 }
 
-.payment-toast.visible {
-    display: block;
+/* Notyf toast overrides to match app theme */
+.notyf__toast,
+.notyf__toast--success,
+[class*="notyf"] .notyf__toast--success {
+    background: #222 !important;
+    background-color: #222 !important;
+    color: #ff9900 !important;
+    border: 1px solid #ff9900 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+    font-family: monospace !important;
+}
+
+.notyf__message {
+    color: #ff9900 !important;
+}
+
+.notyf__toast {
+    z-index: 1100 !important;
+}
+
+.notyf__toast--error .notyf__message {
+    color: #e74c3c !important;
+}
+
+.send-message {
+    margin-top: 10px;
+    font-size: 14px;
+    min-height: 1.2em;
+}
+
+.send-message.error {
+    color: #e74c3c;
+}
+
+.send-message.success {
+    color: #27ae60;
 }

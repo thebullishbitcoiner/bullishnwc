@@ -1,6 +1,20 @@
 import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
+import { LightningAddress } from "https://esm.sh/@getalby/lightning-tools@6.1.0/lnurl";
+import { Notyf } from "https://esm.sh/notyf@3";
 
-if ('serviceWorker' in navigator) {
+const notyf = new Notyf({
+    duration: 4000,
+    position: { x: 'left', y: 'bottom' },
+    types: [
+        {
+            type: 'success',
+            background: '#222',
+            className: 'notyf__toast--success',
+        },
+    ],
+});
+
+if ('serviceWorker' in navigator && !import.meta.env?.DEV) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js')
             .then((registration) => {
@@ -12,21 +26,22 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
+let connections = JSON.parse(localStorage.getItem('bullishnwc_connections')) || [];
 let currentConnection = null;
 /** @type {(() => void) | null} */
 let notificationUnsubscribe = null;
 /** @type {ReturnType<typeof setInterval> | null} */
 let invoicePollingIntervalId = null;
+/** @type {string | null} */
+let lastToastPaymentHash = null;
+/** Payment hash of the invoice currently shown (for dedupe with notifications). */
+let currentInvoicePaymentHash = null;
+/** Timestamp of last payment toast (avoids duplicate when notification arrives right after polling). */
+let lastPaymentToastAt = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-    fetch('manifest.json')
-        .then((res) => res.ok ? res.json() : Promise.reject(res))
-        .then((manifest) => {
-            const el = document.getElementById('app-version');
-            if (el && manifest.version) el.textContent = manifest.version;
-        })
-        .catch(() => {});
+    const el = document.getElementById('app-version');
+    if (el && typeof __APP_VERSION__ !== 'undefined') el.textContent = __APP_VERSION__;
 
     const menuButton = document.getElementById('menu-button');
     const flyoutMenu = document.getElementById('flyout-menu');
@@ -46,10 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // For the info modal
     const infoButton = document.getElementById('info-button');
     const infoModal = document.getElementById('info-modal');
-    const closeButton = document.querySelector('.close-button');
+    const closeInfoModalButton = document.getElementById('close-info-modal');
 
     // Load the current connection from localStorage
-    const savedConnectionUrl = localStorage.getItem('current_connection_url');
+    const savedConnectionUrl = localStorage.getItem('bullishnwc_currentConnection');
     if (savedConnectionUrl) {
         const savedConnection = connections.find(conn => conn.url === savedConnectionUrl);
         if (savedConnection) {
@@ -97,8 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Close the modal when the close button is clicked
-    closeButton.addEventListener('click', () => {
+    closeInfoModalButton.addEventListener('click', () => {
         infoModal.style.display = 'none';
     });
 
@@ -123,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
             const newConnection = { name: walletName, url: walletUrl };
             connections.push(newConnection);
-            localStorage.setItem('nwc_connections', JSON.stringify(connections));
+            localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
             updateConnectionList();
             walletUrlInput.value = '';
             walletNameInput.value = '';
@@ -149,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 name = `Test Wallet ${n}`;
             }
             connections.push({ name, url });
-            localStorage.setItem('nwc_connections', JSON.stringify(connections));
+            localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
             updateConnectionList();
             flyoutMenu.classList.remove('visible');
             await loadWallet(url);
@@ -202,7 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Remove the connection from the array
         connections.splice(index, 1);
         // Update local storage
-        localStorage.setItem('nwc_connections', JSON.stringify(connections));
+        localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
         // Update the connection list display
         updateConnectionList();
     }
@@ -230,20 +244,13 @@ document.addEventListener("DOMContentLoaded", () => {
         return seconds < 30 ? "just now" : seconds + " seconds ago";
     }
 
-    function showPaymentToast(message) {
-        const toast = document.getElementById('payment-toast');
-        if (!toast) return;
-        toast.textContent = message;
-        toast.classList.remove('hidden');
-        toast.classList.add('visible');
-        const hide = () => {
-            toast.classList.remove('visible');
-            toast.classList.add('hidden');
-        };
-        const existing = toast.dataset.toastTimeoutId;
-        if (existing) clearTimeout(Number(existing));
-        const id = setTimeout(hide, 4000);
-        toast.dataset.toastTimeoutId = String(id);
+    function showPaymentToast(message, paymentHash) {
+        if (paymentHash != null && paymentHash === lastToastPaymentHash) return;
+        const now = Date.now();
+        if (now - lastPaymentToastAt < 2500) return; /* Skip if we just showed a payment toast (notification vs polling race) */
+        notyf.success(message);
+        lastPaymentToastAt = now;
+        if (paymentHash != null) lastToastPaymentHash = paymentHash;
     }
 
     async function loadWallet(url) {
@@ -264,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             // Set the wallet name display
             const walletName = connections.find(conn => conn.url === url).name; // Get the wallet name from connections
-            document.getElementById('wallet-name-display').textContent = `[${walletName}]`;
+            document.getElementById('wallet-name-display').textContent = walletName;
 
             await loadBalance(currentConnection);
             await loadTransactions(currentConnection);
@@ -274,7 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
             walletInfo.style.display = 'flex';
 
             // Save the current connection URL to localStorage
-            localStorage.setItem('current_connection_url', url);
+            localStorage.setItem('bullishnwc_currentConnection', url);
 
             const connection = currentConnection;
             const onNotification = (notification) => {
@@ -286,7 +293,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         const sats = Math.floor(notification.notification.amount / 1000);
                         showPaymentToast(`Payment received: ${sats} sats`);
                         const invoiceTextarea = document.getElementById('invoice-textarea');
-                        if (invoiceTextarea && invoiceTextarea.value) invoiceTextarea.value += '\n\n✓ Paid';
+                        if (invoiceTextarea && invoiceTextarea.value) invoiceTextarea.value += ' ✓ Paid';
+                        const waitingEl = document.getElementById('invoice-waiting');
+                        if (waitingEl) waitingEl.classList.add('hidden');
                         setTimeout(() => {
                             const modal = document.getElementById('invoice-modal');
                             if (modal) modal.style.display = 'none';
@@ -369,20 +378,93 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     } // End loadTransactions()
 
-    async function sendFunds() {
-        const invoice = prompt("Enter lightning invoice:");
+    const sendModal = document.getElementById('send-modal');
+    const closeSendModalButton = document.getElementById('close-send-modal');
+    const sendInvoiceTextarea = document.getElementById('send-invoice');
+    const sendAmountInput = document.getElementById('send-amount');
+    const sendMessageEl = document.getElementById('send-message');
+    const sendPayButton = document.getElementById('send-pay-button');
 
-        if (invoice) {
-            try {
-                const response = await currentConnection.payInvoice({ invoice });
-                alert(`Transaction successful: ${response.preimage}`);
-                loadBalance();
-                loadTransactions();
-            } catch (error) {
-                alert(`Error sending funds: ${error.message}`);
+    function openSendModal() {
+        sendInvoiceTextarea.value = '';
+        if (sendAmountInput) sendAmountInput.value = '';
+        sendMessageEl.textContent = '';
+        sendMessageEl.className = 'send-message hidden';
+        sendModal.style.display = 'block';
+        sendInvoiceTextarea.focus();
+    }
+
+    function closeSendModal() {
+        sendModal.style.display = 'none';
+    }
+
+    async function payFromSendModal() {
+        const value = sendInvoiceTextarea.value.trim();
+        if (!value) {
+            sendMessageEl.textContent = 'Please paste a lightning invoice or lightning address.';
+            sendMessageEl.className = 'send-message error';
+            sendMessageEl.classList.remove('hidden');
+            return;
+        }
+        sendMessageEl.textContent = '';
+        sendMessageEl.classList.remove('hidden');
+        sendPayButton.disabled = true;
+        try {
+            let invoiceToPay;
+            if (/^ln/i.test(value)) {
+                invoiceToPay = value;
+            } else if (value.includes('@')) {
+                const amountRaw = sendAmountInput ? sendAmountInput.value.trim() : '';
+                const amount = amountRaw ? parseInt(amountRaw, 10) : NaN;
+                if (!amountRaw || !Number.isInteger(amount) || amount < 1) {
+                    sendMessageEl.textContent = 'Amount (sats) is required for lightning address.';
+                    sendMessageEl.className = 'send-message error';
+                    sendPayButton.disabled = false;
+                    return;
+                }
+                const ln = new LightningAddress(value);
+                await ln.fetch();
+                const inv = await ln.requestInvoice({ satoshi: amount });
+                invoiceToPay = inv.paymentRequest;
+            } else {
+                sendMessageEl.textContent = 'Enter a lightning invoice (starts with ln...) or lightning address (e.g. user@domain.com).';
+                sendMessageEl.className = 'send-message error';
+                sendPayButton.disabled = false;
+                return;
             }
+            await currentConnection.payInvoice({ invoice: invoiceToPay });
+            sendMessageEl.textContent = 'Payment sent.';
+            sendMessageEl.className = 'send-message success';
+            await loadBalance(currentConnection);
+            await loadTransactions(currentConnection);
+            setTimeout(closeSendModal, 1200);
+        } catch (error) {
+            sendMessageEl.textContent = error.message || 'Payment failed.';
+            sendMessageEl.className = 'send-message error';
+        } finally {
+            sendPayButton.disabled = false;
         }
     }
+
+    document.getElementById('send-button').addEventListener('click', openSendModal);
+    closeSendModalButton.addEventListener('click', closeSendModal);
+    document.getElementById('send-paste-button').addEventListener('click', async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text) sendInvoiceTextarea.value = text.trim();
+        } catch (_) {
+            sendMessageEl.textContent = 'Could not read clipboard.';
+            sendMessageEl.className = 'send-message error';
+            sendMessageEl.classList.remove('hidden');
+        }
+    });
+    sendPayButton.addEventListener('click', payFromSendModal);
+    sendInvoiceTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            payFromSendModal();
+        }
+    });
 
     function stopInvoicePolling() {
         if (invoicePollingIntervalId !== null) {
@@ -419,6 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
+            lastToastPaymentHash = null;
             stopInvoicePolling();
             const response = await currentConnection.makeInvoice({
                 amount: amount * 1000, // convert to millisats
@@ -427,6 +510,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const invoice = response.invoice;
             const paymentHash = response.payment_hash;
             const amountSats = Math.floor(response.amount / 1000);
+            currentInvoicePaymentHash = paymentHash;
 
             closeReceiveModal();
 
@@ -436,6 +520,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const qrEl = document.getElementById('invoice-qr');
             if (qrEl && 'lightning' in qrEl) qrEl.lightning = invoice;
             invoiceModalEl.style.display = 'block';
+            const invoiceWaitingEl = document.getElementById('invoice-waiting');
+            if (invoiceWaitingEl) invoiceWaitingEl.classList.remove('hidden');
 
             const connection = currentConnection;
             const invoiceModalElRef = document.getElementById('invoice-modal');
@@ -443,10 +529,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             function markInvoicePaid() {
                 stopInvoicePolling();
+                const waitingEl = document.getElementById('invoice-waiting');
+                if (waitingEl) waitingEl.classList.add('hidden');
                 loadBalance(connection).catch(() => {});
                 loadTransactions(connection).catch(() => {});
-                showPaymentToast(`Payment received: ${amountSats} sats`);
-                if (invoiceTextareaRef) invoiceTextareaRef.value = invoice + '\n\n✓ Paid';
+                showPaymentToast(`Payment received: ${amountSats} sats`, paymentHash);
+                if (invoiceTextareaRef) invoiceTextareaRef.value = invoice + ' ✓ Paid';
                 // Close the invoice modal after a short delay so the toast is visible
                 setTimeout(() => {
                     const modal = document.getElementById('invoice-modal');
@@ -498,23 +586,21 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') createInvoiceFromReceiveModal();
     });
 
-    // Copy button functionality
-    document.getElementById('copy-invoice-button').addEventListener('click', async () => {
-        const invoiceTextarea = document.getElementById('invoice-textarea');
-        await navigator.clipboard.writeText(invoiceTextarea.value); // Copy the invoice text
-
-        const copyButton = document.getElementById('copy-invoice-button');
-        const originalButtonText = copyButton.textContent; // Store the original button text
-        copyButton.textContent = 'Copied!'; // Change button text to "Copied!"
-
-        setTimeout(() => {
-            copyButton.textContent = originalButtonText; // Revert back to original text after 1 second
-        }, 1000);
+    document.getElementById('copy-invoice-icon').addEventListener('click', async () => {
+        const el = document.getElementById('invoice-textarea');
+        if (!el?.value) return;
+        try {
+            await navigator.clipboard.writeText(el.value);
+            notyf.success('Copied!');
+        } catch (_) {
+            notyf.error('Could not copy');
+        }
     });
 
     // Close modal functionality
     document.getElementById('close-invoice-modal').addEventListener('click', () => {
         stopInvoicePolling();
+        currentInvoicePaymentHash = null;
         document.getElementById('invoice-modal').style.display = 'none';
     });
 
@@ -530,7 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.log(`[${timestamp}] window became visible`);
 
             if (!currentConnection) {
-                const currentConnectionURL = localStorage.getItem('current_connection_url');
+                const currentConnectionURL = localStorage.getItem('bullishnwc_currentConnection');
                 if (currentConnectionURL) {
                     try {
                         currentConnection = new nwc.NWCClient({
@@ -555,7 +641,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    document.getElementById('send-button').addEventListener('click', sendFunds);
 
     // Initialize the connection list on page load
     updateConnectionList();
