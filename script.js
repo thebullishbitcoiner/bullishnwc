@@ -49,6 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const openAddModalButton = document.getElementById('open-add-modal');
     const closeAddModalButton = document.getElementById('close-add-modal');
     const addConnectionButton = document.getElementById('add-connection');
+    const deleteConnectionModal = document.getElementById('delete-connection-modal');
+    const deleteConnectionMessage = document.getElementById('delete-connection-message');
+    const closeDeleteModalButton = document.getElementById('close-delete-modal');
+    const deleteConnectionCancelButton = document.getElementById('delete-connection-cancel');
+    const deleteConnectionConfirmButton = document.getElementById('delete-connection-confirm');
     const createTestWalletButton = document.getElementById('create-test-wallet');
     const walletUrlInput = document.getElementById('wallet-url');
     const walletNameInput = document.getElementById('wallet-name');
@@ -130,6 +135,22 @@ document.addEventListener("DOMContentLoaded", () => {
         addConnectionModal.style.display = 'none';
     });
 
+    /** Index of connection pending delete (set when confirmation modal opens). */
+    let pendingDeleteConnectionIndex = null;
+
+    function closeDeleteConnectionModal() {
+        deleteConnectionModal.style.display = 'none';
+        pendingDeleteConnectionIndex = null;
+    }
+
+    closeDeleteModalButton.addEventListener('click', closeDeleteConnectionModal);
+    deleteConnectionCancelButton.addEventListener('click', closeDeleteConnectionModal);
+    deleteConnectionConfirmButton.addEventListener('click', () => {
+        if (pendingDeleteConnectionIndex === null) return;
+        deleteConnection(pendingDeleteConnectionIndex);
+        closeDeleteConnectionModal();
+    });
+
     addConnectionButton.addEventListener('click', () => {
         const walletUrl = walletUrlInput.value.trim();
         const walletName = walletNameInput.value.trim();
@@ -198,7 +219,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 deleteButton.className = 'delete-button'; // Add a class for styling
                 deleteButton.addEventListener('click', (event) => {
                     event.stopPropagation(); // Prevent the click from triggering the li event
-                    deleteConnection(index);
+                    const conn = connections[index];
+                    if (!conn) return;
+                    deleteConnectionMessage.textContent = `Remove [${conn.name}]? This cannot be undone.`;
+                    pendingDeleteConnectionIndex = index;
+                    deleteConnectionModal.style.display = 'block';
                 });
 
                 li.appendChild(nameSpan); // Append the wallet name to the list item
@@ -212,12 +237,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function resetToNoConnection() {
+        currentConnection = null;
+        localStorage.removeItem('bullishnwc_currentConnection');
+        if (notificationUnsubscribe) {
+            notificationUnsubscribe();
+            notificationUnsubscribe = null;
+        }
+        stopInvoicePolling();
+        walletInfo.classList.add('hidden');
+        walletInfo.style.display = 'none';
+        balanceDiv.textContent = '';
+        transactionsDiv.innerHTML = '';
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.classList.remove('visible');
+    }
+
     function deleteConnection(index) {
-        // Remove the connection from the array
+        const conn = connections[index];
+        if (!conn) return;
+        const wasCurrentConnection = localStorage.getItem('bullishnwc_currentConnection') === conn.url;
         connections.splice(index, 1);
-        // Update local storage
         localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
-        // Update the connection list display
+        if (wasCurrentConnection) resetToNoConnection();
         updateConnectionList();
     }
 

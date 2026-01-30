@@ -49,6 +49,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Delete connection confirmation -->
+            <div id="delete-connection-modal" class="modal hidden">
+                <div class="modal-content modal-content--narrow">
+                    <span class="close-button" id="close-delete-modal">&times;</span>
+                    <h2 style="margin-top: 0;">Remove connection?</h2>
+                    <p id="delete-connection-message" style="margin: 1em 0;"></p>
+                    <div class="delete-modal-actions">
+                        <button id="delete-connection-cancel">Cancel</button>
+                        <button id="delete-connection-confirm" class="button-danger">Remove</button>
+                    </div>
+                </div>
+            </div>
             <div id="wallet-info" class="hidden">
                 <div id="wallet-name-container" style="display: flex; align-items: center;">
                     <h2 id="wallet-name-display" class="wallet-name-header"></h2>
@@ -67,7 +80,7 @@
                 </div>
             </div>
             <div id="loading" class="hidden">
-                Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
+                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
             </div>
             <div id="default-message" style="display: none; color: #ff9900; margin-top: 21px;">
                 <p>A bullish Nostr Wallet Connect (NWC) wallet aimed at creating a simple, streamlined interface to

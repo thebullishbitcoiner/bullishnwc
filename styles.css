@@ -147,10 +147,10 @@ body {
     background: #222;
     color: #ff9900;
     border: 1px solid #ff9900;
-    padding: 12px;
+    padding: 10px;
     cursor: pointer;
     font-family: monospace;
-    font-size: 16px;
+    font-size: inherit;
 }
 
 .flyout-action-button:hover {
@@ -251,18 +251,13 @@ li:hover {
 
 #loading {
     display: none;
-    /* Hidden by default */
     color: #ff9900;
-    /* Loading text color */
-    font-size: 14px;
-    /* Font size for loading text */
+    font-size: 24px;
     margin-top: 20px;
-    /* Space above the loading text */
 }
 
 #loading.visible {
     display: block;
-    /* Show when loading */
 }
 
 .dot {
@@ -361,6 +356,29 @@ li:hover {
 
 .close-button:hover {
     color: #fff; /* Change color on hover */
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 1em;
+    flex-wrap: wrap;
+}
+
+.delete-modal-actions button {
+    flex: 1;
+    min-width: 80px;
+}
+
+.button-danger {
+    background: #222;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+}
+
+.button-danger:hover {
+    color: #fff;
+    border-color: #e74c3c;
 }
 
 .input-with-icon {
