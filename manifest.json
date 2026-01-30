@@ -1,5 +1,6 @@
 {
     "name": "bullishNWC",
+    "version": "0.1.0",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",

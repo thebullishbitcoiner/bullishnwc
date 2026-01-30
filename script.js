@@ -14,11 +14,27 @@ if ('serviceWorker' in navigator) {
 
 let connections = JSON.parse(localStorage.getItem('nwc_connections')) || [];
 let currentConnection = null;
+/** @type {(() => void) | null} */
+let notificationUnsubscribe = null;
+/** @type {ReturnType<typeof setInterval> | null} */
+let invoicePollingIntervalId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
+    fetch('manifest.json')
+        .then((res) => res.ok ? res.json() : Promise.reject(res))
+        .then((manifest) => {
+            const el = document.getElementById('app-version');
+            if (el && manifest.version) el.textContent = manifest.version;
+        })
+        .catch(() => {});
+
     const menuButton = document.getElementById('menu-button');
     const flyoutMenu = document.getElementById('flyout-menu');
+    const addConnectionModal = document.getElementById('add-connection-modal');
+    const openAddModalButton = document.getElementById('open-add-modal');
+    const closeAddModalButton = document.getElementById('close-add-modal');
     const addConnectionButton = document.getElementById('add-connection');
+    const createTestWalletButton = document.getElementById('create-test-wallet');
     const walletUrlInput = document.getElementById('wallet-url');
     const walletNameInput = document.getElementById('wallet-name');
     const connectionList = document.getElementById('connection-list');
@@ -90,19 +106,59 @@ document.addEventListener("DOMContentLoaded", () => {
         flyoutMenu.classList.toggle('visible'); // Toggle the visible class
     });
 
+    openAddModalButton.addEventListener('click', () => {
+        walletNameInput.value = '';
+        walletUrlInput.value = '';
+        addConnectionModal.style.display = 'block';
+    });
+
+    closeAddModalButton.addEventListener('click', () => {
+        addConnectionModal.style.display = 'none';
+    });
+
     addConnectionButton.addEventListener('click', () => {
-        const walletUrl = walletUrlInput.value;
-        const walletName = walletNameInput.value;
+        const walletUrl = walletUrlInput.value.trim();
+        const walletName = walletNameInput.value.trim();
 
         if (walletUrl && walletName && !connections.some(conn => conn.url === walletUrl)) {
             const newConnection = { name: walletName, url: walletUrl };
             connections.push(newConnection);
-            localStorage.setItem('nwc_connections', JSON.stringify(connections)); // Store in local storage
+            localStorage.setItem('nwc_connections', JSON.stringify(connections));
             updateConnectionList();
             walletUrlInput.value = '';
             walletNameInput.value = '';
+            addConnectionModal.style.display = 'none';
         } else {
             alert('Please enter both wallet name and URL, and ensure the URL is unique.');
+        }
+    });
+
+    createTestWalletButton.addEventListener('click', async () => {
+        const btn = createTestWalletButton;
+        btn.disabled = true;
+        btn.textContent = 'Creating…';
+        try {
+            const res = await fetch('https://faucet.nwc.dev?balance=10000', { method: 'POST' });
+            if (!res.ok) throw new Error(`Faucet returned ${res.status}`);
+            const url = (await res.text()).trim();
+            if (!url) throw new Error('No connection URL returned');
+            let name = 'Test Wallet';
+            let n = 1;
+            while (connections.some(conn => conn.name === name)) {
+                n += 1;
+                name = `Test Wallet ${n}`;
+            }
+            connections.push({ name, url });
+            localStorage.setItem('nwc_connections', JSON.stringify(connections));
+            updateConnectionList();
+            flyoutMenu.classList.remove('visible');
+            await loadWallet(url);
+        } catch (err) {
+            console.error('Error creating test wallet:', err);
+            alert(`Could not create test wallet: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create Test Wallet';
         }
     });
 
@@ -172,9 +228,30 @@ document.addEventListener("DOMContentLoaded", () => {
         if (interval === 1) return "1 minute ago";
     
         return seconds < 30 ? "just now" : seconds + " seconds ago";
-    }    
+    }
+
+    function showPaymentToast(message) {
+        const toast = document.getElementById('payment-toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.remove('hidden');
+        toast.classList.add('visible');
+        const hide = () => {
+            toast.classList.remove('visible');
+            toast.classList.add('hidden');
+        };
+        const existing = toast.dataset.toastTimeoutId;
+        if (existing) clearTimeout(Number(existing));
+        const id = setTimeout(hide, 4000);
+        toast.dataset.toastTimeoutId = String(id);
+    }
 
     async function loadWallet(url) {
+        if (notificationUnsubscribe) {
+            notificationUnsubscribe();
+            notificationUnsubscribe = null;
+        }
+
         currentConnection = new nwc.NWCClient({
             nostrWalletConnectUrl: url,
         });
@@ -198,6 +275,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Save the current connection URL to localStorage
             localStorage.setItem('current_connection_url', url);
+
+            const connection = currentConnection;
+            const onNotification = (notification) => {
+                if (notification.notification_type === "payment_received" || notification.notification_type === "payment_sent") {
+                    stopInvoicePolling();
+                    loadBalance(connection);
+                    loadTransactions(connection);
+                    if (notification.notification_type === "payment_received") {
+                        const sats = Math.floor(notification.notification.amount / 1000);
+                        showPaymentToast(`Payment received: ${sats} sats`);
+                    }
+                }
+            };
+            try {
+                notificationUnsubscribe = await connection.subscribeNotifications(onNotification, ["payment_received", "payment_sent"]);
+            } catch (err) {
+                console.error("Error subscribing to notifications:", err);
+            }
         } catch (error) {
             console.error("Error loading wallet:", error);
             transactionsDiv.innerHTML = "Error loading transactions.";
@@ -283,26 +378,116 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function receiveFunds() {
-        const amount = prompt("Enter amount of sats:");
-
-        if (amount) {
-            try {
-                const response = await currentConnection.makeInvoice({
-                    amount: amount * 1000, // convert to millisats
-                });
-                const invoice = response.invoice;
-
-                // Show the modal with the invoice
-                const invoiceTextarea = document.getElementById('invoice-textarea');
-                invoiceTextarea.value = invoice; // Set the invoice in the textarea
-                document.getElementById('invoice-modal').style.display = 'block'; // Show the modal
-            } catch (error) {
-                console.error("Error in receiveFunds:", error);
-                alert(`Error: ${error.message}`);
-            }
+    function stopInvoicePolling() {
+        if (invoicePollingIntervalId !== null) {
+            clearInterval(invoicePollingIntervalId);
+            invoicePollingIntervalId = null;
         }
     }
+
+    const receiveModal = document.getElementById('receive-modal');
+    const receiveAmountInput = document.getElementById('receive-amount');
+    const receiveDescriptionInput = document.getElementById('receive-description');
+    const closeReceiveModalButton = document.getElementById('close-receive-modal');
+    const receiveCreateInvoiceButton = document.getElementById('receive-create-invoice');
+
+    function openReceiveModal() {
+        receiveAmountInput.value = '';
+        receiveDescriptionInput.value = '';
+        receiveModal.style.display = 'block';
+        receiveAmountInput.focus();
+    }
+
+    function closeReceiveModal() {
+        receiveModal.style.display = 'none';
+    }
+
+    async function createInvoiceFromReceiveModal() {
+        const amountRaw = receiveAmountInput.value.trim();
+        const amount = amountRaw ? parseInt(amountRaw, 10) : NaN;
+        const description = receiveDescriptionInput.value.trim() || undefined;
+
+        if (!amountRaw || !Number.isInteger(amount) || amount < 1) {
+            alert('Please enter a valid amount (whole sats, at least 1).');
+            return;
+        }
+
+        try {
+            stopInvoicePolling();
+            const response = await currentConnection.makeInvoice({
+                amount: amount * 1000, // convert to millisats
+                ...(description && { description }),
+            });
+            const invoice = response.invoice;
+            const paymentHash = response.payment_hash;
+            const amountSats = Math.floor(response.amount / 1000);
+
+            closeReceiveModal();
+
+            const invoiceModalEl = document.getElementById('invoice-modal');
+            const invoiceTextarea = document.getElementById('invoice-textarea');
+            invoiceTextarea.value = invoice;
+            invoiceModalEl.style.display = 'block';
+
+            const connection = currentConnection;
+            const invoiceModalElRef = document.getElementById('invoice-modal');
+            const invoiceTextareaRef = document.getElementById('invoice-textarea');
+
+            function markInvoicePaid() {
+                stopInvoicePolling();
+                loadBalance(connection).catch(() => {});
+                loadTransactions(connection).catch(() => {});
+                showPaymentToast(`Payment received: ${amountSats} sats`);
+                if (invoiceTextareaRef) invoiceTextareaRef.value = invoice + '\n\n✓ Paid';
+                // Close the invoice modal after a short delay so the toast is visible
+                setTimeout(() => {
+                    if (invoiceModalElRef) invoiceModalElRef.style.display = 'none';
+                }, 1500);
+            }
+
+            invoicePollingIntervalId = setInterval(async () => {
+                if (!connection || !paymentHash) return;
+                try {
+                    const lookup = await connection.lookupInvoice({ payment_hash: paymentHash });
+                    const isSettled = lookup && (
+                        lookup.state === 'settled' ||
+                        String(lookup.state).toLowerCase() === 'settled' ||
+                        (typeof lookup.settled_at === 'number' && lookup.settled_at > 0)
+                    );
+                    if (isSettled) {
+                        markInvoicePaid();
+                        return;
+                    }
+                } catch (_) {
+                    // Fallback: check listTransactions for an incoming payment with this payment_hash
+                }
+                try {
+                    const list = await connection.listTransactions({ limit: 10 });
+                    const tx = list.transactions && list.transactions.find(
+                        (t) => t.type === 'incoming' && t.payment_hash === paymentHash
+                    );
+                    if (tx) {
+                        markInvoicePaid();
+                    }
+                } catch (_) {
+                    // ignore
+                }
+            }, 2000);
+        } catch (error) {
+            console.error("Error creating invoice:", error);
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    document.getElementById('receive-button').addEventListener('click', openReceiveModal);
+    closeReceiveModalButton.addEventListener('click', closeReceiveModal);
+    receiveCreateInvoiceButton.addEventListener('click', createInvoiceFromReceiveModal);
+    receiveAmountInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') createInvoiceFromReceiveModal();
+    });
+    receiveDescriptionInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') createInvoiceFromReceiveModal();
+    });
 
     // Copy button functionality
     document.getElementById('copy-invoice-button').addEventListener('click', async () => {
@@ -320,7 +505,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Close modal functionality
     document.getElementById('close-invoice-modal').addEventListener('click', () => {
-        document.getElementById('invoice-modal').style.display = 'none'; // Hide the modal
+        stopInvoicePolling();
+        document.getElementById('invoice-modal').style.display = 'none';
     });
 
     document.addEventListener('visibilitychange', async function () {
@@ -361,7 +547,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById('send-button').addEventListener('click', sendFunds);
-    document.getElementById('receive-button').addEventListener('click', receiveFunds);
 
     // Initialize the connection list on page load
     updateConnectionList();

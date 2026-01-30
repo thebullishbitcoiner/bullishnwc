@@ -89,6 +89,72 @@ body {
     box-sizing: border-box;
 }
 
+.add-container label {
+    color: #ff9900;
+    font-size: 14px;
+    margin-top: 8px;
+    display: block;
+}
+
+.add-container label:first-of-type {
+    margin-top: 0;
+}
+
+.add-container input[type="number"],
+.add-container input[type="text"],
+.add-container textarea {
+    background-color: #222;
+    border: 1px solid #ff9900;
+    color: #ff9900;
+    font-family: monospace;
+}
+
+.add-container input::placeholder,
+.add-container textarea::placeholder {
+    color: #965a00;
+}
+
+.add-container button {
+    margin-top: 12px;
+    background: #ff9900;
+    color: #000;
+    border: none;
+    padding: 12px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 16px;
+}
+
+.add-container button:hover {
+    background: #e68a00;
+}
+
+.flyout-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 15px;
+}
+
+.flyout-action-button {
+    background: #222;
+    color: #ff9900;
+    border: 1px solid #ff9900;
+    padding: 12px;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 16px;
+}
+
+.flyout-action-button:hover {
+    background: #333;
+}
+
+.flyout-action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .hamburger {
     background: #000;
     border: none;
@@ -334,4 +400,25 @@ li:hover {
     color: #ff9900; /* Color for the copied message */
     font-size: 14px; /* Font size for the message */
     margin-top: 5px; /* Space above the message */
+}
+
+.payment-toast {
+    display: none;
+    position: fixed;
+    bottom: 21px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #222;
+    color: #ff9900;
+    border: 1px solid #ff9900;
+    padding: 12px 21px;
+    border-radius: 0;
+    z-index: 1100; /* Above modals (1000) so toast is visible when invoice modal is open */
+    font-size: 14px;
+    max-width: 90%;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.payment-toast.visible {
+    display: block;
 }

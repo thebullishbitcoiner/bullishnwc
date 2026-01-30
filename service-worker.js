@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bullishNWC-v1'; // Change version to force update
+const CACHE_NAME = 'bullishNWC-v2'; // Bump to force fresh cache after UI changes
 const urlsToCache = [
     '/',
     'index.html', // Add your main HTML file
@@ -16,6 +16,7 @@ self.addEventListener('install', (event) => {
                 console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
+            .then(() => self.skipWaiting())
     );
 });
 

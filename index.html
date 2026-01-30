@@ -21,7 +21,7 @@
         <div class="terminal">
             <div class="header-container">
                 <h1>bullishNWC</h1>
-                <small>0.0.12</small>
+                <small id="app-version"></small>
             </div>
             <button id="menu-button" class="hamburger">☰</button>
             <div id="flyout-menu" class="flyout-menu hidden">
@@ -29,10 +29,22 @@
                     <h1>Connections</h1>
                 </div>
                 <ul id="connection-list" style="padding-top: 10px;"></ul>
-                <div class="add-container">
-                    <input type="text" id="wallet-name" placeholder="Name">
-                    <textarea id="wallet-url" placeholder="nostr+walletconnect..." rows="3"></textarea>
-                    <button id="add-connection">Add</button>
+                <div class="flyout-actions">
+                    <button id="open-add-modal" class="flyout-action-button">Add</button>
+                    <button id="create-test-wallet" class="flyout-action-button">Create Test Wallet</button>
+                </div>
+            </div>
+
+            <!-- Add Connection modal (name + URL inputs) -->
+            <div id="add-connection-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="close-button" id="close-add-modal">&times;</span>
+                    <h2 style="margin-top: 0;">Add Connection</h2>
+                    <div class="add-container">
+                        <input type="text" id="wallet-name" placeholder="Name">
+                        <textarea id="wallet-url" placeholder="nostr+walletconnect..." rows="3"></textarea>
+                        <button id="add-connection">Add</button>
+                    </div>
                 </div>
             </div>
             <div id="wallet-info" class="hidden">
@@ -82,6 +94,21 @@
                 </div>
             </div>
 
+            <!-- Receive modal (amount + optional description) -->
+            <div id="receive-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="close-button" id="close-receive-modal">&times;</span>
+                    <h2 style="margin-top: 0;">Receive</h2>
+                    <div class="add-container">
+                        <label for="receive-amount">Amount (sats)</label>
+                        <input type="number" id="receive-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
+                        <label for="receive-description">Description (optional)</label>
+                        <input type="text" id="receive-description" placeholder="What's this for?">
+                        <button id="receive-create-invoice">Create invoice</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="invoice-modal" class="modal">
                 <div class="modal-content">
                     <span class="close-button" id="close-invoice-modal">&times;</span>
@@ -92,6 +119,7 @@
                 </div>
             </div>
 
+            <div id="payment-toast" class="payment-toast hidden" aria-live="polite"></div>
 
         </div>
     </div>

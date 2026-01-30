@@ -1,0 +1,8 @@
+# Agent / IDE config and skills (local, not part of app)
+.agents/
+.claude/
+.cursor/
+.opencode/
+
+# Local planning / backlog docs
+plans/
