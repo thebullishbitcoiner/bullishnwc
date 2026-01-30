@@ -184,7 +184,20 @@ document.addEventListener("DOMContentLoaded", () => {
             dd.appendChild(wrapper);
             list.appendChild(dd);
         }
-        if (tx.metadata && Object.keys(tx.metadata).length > 0) add('Metadata', tx.metadata);
+        if (tx.metadata && Object.keys(tx.metadata).length > 0) {
+            const dt = document.createElement('dt');
+            dt.textContent = 'Metadata';
+            list.appendChild(dt);
+            const dd = document.createElement('dd');
+            dd.className = 'transaction-detail-metadata-dd';
+            const textarea = document.createElement('textarea');
+            textarea.readOnly = true;
+            textarea.rows = 8;
+            textarea.value = JSON.stringify(tx.metadata, null, 2);
+            textarea.setAttribute('aria-label', 'Metadata');
+            dd.appendChild(textarea);
+            list.appendChild(dd);
+        }
         transactionDetailModal.style.display = 'block';
     }
 

@@ -477,6 +477,28 @@ li:hover {
     margin-top: var(--space-xs);
 }
 
+.transaction-detail-metadata-dd {
+    margin-top: var(--space-xs);
+}
+
+.transaction-detail-metadata-dd textarea {
+    display: block;
+    width: 100%;
+    max-height: 200px;
+    padding: var(--space-sm);
+    box-sizing: border-box;
+    background: var(--color-surface-elevated);
+    border: var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    resize: vertical;
+    white-space: pre;
+    overflow-wrap: normal;
+}
+
 .transaction-detail-invoice-wrapper {
     position: relative;
     display: block;
