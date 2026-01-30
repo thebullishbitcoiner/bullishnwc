@@ -285,6 +285,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (notification.notification_type === "payment_received") {
                         const sats = Math.floor(notification.notification.amount / 1000);
                         showPaymentToast(`Payment received: ${sats} sats`);
+                        const invoiceTextarea = document.getElementById('invoice-textarea');
+                        if (invoiceTextarea && invoiceTextarea.value) invoiceTextarea.value += '\n\n✓ Paid';
+                        setTimeout(() => {
+                            const modal = document.getElementById('invoice-modal');
+                            if (modal) modal.style.display = 'none';
+                        }, 1500);
                     }
                 }
             };
@@ -427,6 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const invoiceModalEl = document.getElementById('invoice-modal');
             const invoiceTextarea = document.getElementById('invoice-textarea');
             invoiceTextarea.value = invoice;
+            const qrEl = document.getElementById('invoice-qr');
+            if (qrEl && 'lightning' in qrEl) qrEl.lightning = invoice;
             invoiceModalEl.style.display = 'block';
 
             const connection = currentConnection;
@@ -441,7 +449,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (invoiceTextareaRef) invoiceTextareaRef.value = invoice + '\n\n✓ Paid';
                 // Close the invoice modal after a short delay so the toast is visible
                 setTimeout(() => {
-                    if (invoiceModalElRef) invoiceModalElRef.style.display = 'none';
+                    const modal = document.getElementById('invoice-modal');
+                    if (modal) modal.style.display = 'none';
                 }, 1500);
             }
 
