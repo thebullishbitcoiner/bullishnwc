@@ -48,6 +48,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const closeDeleteModalButton = document.getElementById('close-delete-modal');
     const deleteConnectionCancelButton = document.getElementById('delete-connection-cancel');
     const deleteConnectionConfirmButton = document.getElementById('delete-connection-confirm');
+    const editConnectionModal = document.getElementById('edit-connection-modal');
+    const editWalletNameInput = document.getElementById('edit-wallet-name');
+    const editWalletUrlInput = document.getElementById('edit-wallet-url');
+    const saveEditConnectionButton = document.getElementById('save-edit-connection');
+    const closeEditModalButton = document.getElementById('close-edit-modal');
     const createTestWalletButton = document.getElementById('create-test-wallet');
     const walletUrlInput = document.getElementById('wallet-url');
     const walletNameInput = document.getElementById('wallet-name');
@@ -200,9 +205,21 @@ document.addEventListener("DOMContentLoaded", () => {
     /** Index of connection pending delete (set when confirmation modal opens). */
     let pendingDeleteConnectionIndex = null;
 
+    /** Index of connection being edited. */
+    let pendingEditConnectionIndex = null;
+
     function closeDeleteConnectionModal() {
         deleteConnectionModal.style.display = 'none';
         pendingDeleteConnectionIndex = null;
+    }
+
+    function closeEditConnectionModal() {
+        editConnectionModal.style.display = 'none';
+        pendingEditConnectionIndex = null;
+    }
+
+    function closeAllConnectionMenus() {
+        document.querySelectorAll('.connection-item-menu.visible').forEach((m) => m.classList.remove('visible'));
     }
 
     closeDeleteModalButton.addEventListener('click', closeDeleteConnectionModal);
@@ -211,6 +228,39 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pendingDeleteConnectionIndex === null) return;
         deleteConnection(pendingDeleteConnectionIndex);
         closeDeleteConnectionModal();
+    });
+
+    closeEditModalButton.addEventListener('click', closeEditConnectionModal);
+    saveEditConnectionButton.addEventListener('click', () => {
+        if (pendingEditConnectionIndex === null) return;
+        const name = editWalletNameInput.value.trim();
+        const url = editWalletUrlInput.value.trim();
+        if (!name || !url) {
+            alert('Name and connection string are required.');
+            return;
+        }
+        const conn = connections[pendingEditConnectionIndex];
+        if (!conn) return;
+        const isCurrentConnection = localStorage.getItem('bullishnwc_currentConnection') === conn.url;
+        const urlChanged = url !== conn.url;
+        const sameUrlExists = connections.some((c, i) => i !== pendingEditConnectionIndex && c.url === url);
+        if (urlChanged && sameUrlExists) {
+            alert('Another connection already uses this connection string.');
+            return;
+        }
+        conn.name = name;
+        conn.url = url;
+        localStorage.setItem('bullishnwc_connections', JSON.stringify(connections));
+        updateConnectionList();
+        closeEditConnectionModal();
+        if (isCurrentConnection) {
+            if (urlChanged) {
+                loadWallet(url);
+            } else {
+                document.getElementById('wallet-name-display').textContent = name;
+            }
+            localStorage.setItem('bullishnwc_currentConnection', url);
+        }
     });
 
     addConnectionButton.addEventListener('click', () => {
@@ -283,13 +333,65 @@ document.addEventListener("DOMContentLoaded", () => {
                     nameWrapper.appendChild(document.createTextNode(' '));
                     nameWrapper.appendChild(badge);
                 }
+                nameWrapper.addEventListener('click', () => {
+                    loadWallet(url);
+                    flyoutMenu.classList.remove('visible');
+                });
 
-                const deleteButton = document.createElement('button');
-                deleteButton.innerHTML = '<i class="fas fa-times"></i>';
-                deleteButton.className = 'delete-button';
-                deleteButton.setAttribute('aria-label', `Remove ${name}`);
-                deleteButton.addEventListener('click', (event) => {
-                    event.stopPropagation();
+                const actionsWrapper = document.createElement('div');
+                actionsWrapper.className = 'connection-list-item__actions';
+
+                const menuTrigger = document.createElement('button');
+                menuTrigger.type = 'button';
+                menuTrigger.className = 'connection-item-menu-trigger';
+                menuTrigger.innerHTML = '<i class="fas fa-ellipsis-v" aria-hidden="true"></i>';
+                menuTrigger.setAttribute('aria-label', `Options for ${name}`);
+                menuTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (menu.classList.contains('visible')) {
+                        menu.classList.remove('visible');
+                        return;
+                    }
+                    closeAllConnectionMenus();
+                    menu.classList.add('visible');
+                    requestAnimationFrame(() => {
+                        const rect = menuTrigger.getBoundingClientRect();
+                        const left = Math.max(4, rect.right - menu.offsetWidth);
+                        menu.style.top = `${rect.bottom + 4}px`;
+                        menu.style.left = `${left}px`;
+                    });
+                    setTimeout(() => {
+                        const closeMenus = () => {
+                            document.removeEventListener('click', closeMenus);
+                            menu.classList.remove('visible');
+                        };
+                        document.addEventListener('click', closeMenus);
+                    }, 0);
+                });
+
+                const menu = document.createElement('div');
+                menu.className = 'connection-item-menu';
+
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.textContent = 'Edit';
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menu.classList.remove('visible');
+                    const c = connections[index];
+                    if (!c) return;
+                    pendingEditConnectionIndex = index;
+                    editWalletNameInput.value = c.name;
+                    editWalletUrlInput.value = c.url;
+                    editConnectionModal.style.display = 'block';
+                });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menu.classList.remove('visible');
                     const c = connections[index];
                     if (!c) return;
                     deleteConnectionMessage.textContent = `Remove [${c.name}]? This cannot be undone.`;
@@ -297,12 +399,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     deleteConnectionModal.style.display = 'block';
                 });
 
+                menu.appendChild(editBtn);
+                menu.appendChild(deleteBtn);
+                actionsWrapper.appendChild(menuTrigger);
+                actionsWrapper.appendChild(menu);
+
                 li.appendChild(nameWrapper);
-                li.appendChild(deleteButton);
-                li.addEventListener('click', () => {
-                    loadWallet(url);
-                    flyoutMenu.classList.remove('visible');
-                });
+                li.appendChild(actionsWrapper);
                 connectionList.appendChild(li);
             });
         }
