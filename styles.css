@@ -305,8 +305,15 @@ li:hover {
     border-radius: var(--radius-sm);
     background-color: var(--color-surface);
     margin-top: var(--space-xl);
+    margin-bottom: var(--space-xl);
     max-height: 100%;
     overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    #wallet-info {
+        margin-bottom: calc(env(safe-area-inset-bottom, 0px) + 2 * var(--space-xl));
+    }
 }
 
 /* Balance card (hero) */
