@@ -14,18 +14,6 @@ const notyf = new Notyf({
     ],
 });
 
-if ('serviceWorker' in navigator && !import.meta.env?.DEV) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
-            .then((registration) => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-                console.error('Service Worker registration failed:', error);
-            });
-    });
-}
-
 let connections = JSON.parse(localStorage.getItem('bullishnwc_connections')) || [];
 let currentConnection = null;
 /** @type {(() => void) | null} */
