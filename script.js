@@ -33,7 +33,7 @@ let lastPaymentToastAt = 0;
 let lastTransactions = [];
 
 const brantaService = new BrantaService({
-    baseUrl: import.meta.env.DEV ? BrantaServerBaseUrl.Staging : BrantaServerBaseUrl.Production,
+    baseUrl: import.meta.env?.DEV ? BrantaServerBaseUrl.Staging : BrantaServerBaseUrl.Production,
     privacy: 'strict',
 });
 
