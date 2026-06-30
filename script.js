@@ -1,6 +1,9 @@
 import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
 import { LightningAddress } from "https://esm.sh/@getalby/lightning-tools@6.1.0/lnurl";
 import { Notyf } from "https://esm.sh/notyf@3";
+import { BrantaServerBaseUrl } from "https://esm.sh/@branta-ops/branta@3.1.4";
+import { BrantaService } from "https://esm.sh/@branta-ops/branta@3.1.4/v2";
+import QrScanner from "https://esm.sh/qr-scanner@1.4.2";
 
 const notyf = new Notyf({
     duration: 4000,
@@ -28,6 +31,14 @@ let currentInvoicePaymentHash = null;
 let lastPaymentToastAt = 0;
 /** Last loaded transactions (for detail modal). */
 let lastTransactions = [];
+
+const brantaService = new BrantaService({
+    baseUrl: import.meta.env.DEV ? BrantaServerBaseUrl.Staging : BrantaServerBaseUrl.Production,
+    privacy: 'strict',
+});
+
+/** Active QR scanner instance for the send flow (created lazily, torn down on close). */
+let sendQrScanner = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     const el = document.getElementById('app-version');
@@ -623,12 +634,67 @@ document.addEventListener("DOMContentLoaded", () => {
     const sendAmountInput = document.getElementById('send-amount');
     const sendMessageEl = document.getElementById('send-message');
     const sendPayButton = document.getElementById('send-pay-button');
+    const sendScanButton = document.getElementById('send-scan-button');
+    const merchantBadge = document.getElementById('send-merchant-badge');
+    const merchantBadgeLogo = document.getElementById('send-merchant-badge-logo');
+    const merchantBadgeName = document.getElementById('send-merchant-badge-name');
+    const merchantBadgeDesc = document.getElementById('send-merchant-badge-desc');
+
+    function debounce(fn, delay) {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn(...args), delay);
+        };
+    }
+
+    function hideMerchantBadge() {
+        merchantBadge.classList.add('hidden');
+        merchantBadge.removeAttribute('href');
+        merchantBadgeLogo.removeAttribute('src');
+        merchantBadgeName.textContent = '';
+        merchantBadgeDesc.textContent = '';
+    }
+
+    async function lookupMerchantBadge(value, { isQrCode }) {
+        if (!value) {
+            hideMerchantBadge();
+            return;
+        }
+        try {
+            const result = isQrCode
+                ? await brantaService.getPaymentsByQrCode(value)
+                : await brantaService.getPayments(value);
+
+            if (!result || !Array.isArray(result.payments) || result.payments.length === 0) {
+                hideMerchantBadge();
+                return;
+            }
+
+            const payment = result.payments[0];
+            merchantBadgeLogo.src = payment.platformLogoUrl;
+            merchantBadgeName.textContent = payment.platform || '';
+            merchantBadgeDesc.textContent = payment.description ? payment.description.trim() : '';
+            merchantBadgeDesc.classList.toggle('hidden', !payment.description);
+            merchantBadge.href = result.verifyUrl;
+            merchantBadge.classList.remove('hidden');
+        } catch (_) {
+            // Empty/error result just means the destination is unknown to Branta, not malicious — show nothing.
+            hideMerchantBadge();
+        }
+    }
+
+    const debouncedLookupMerchantBadge = debounce(
+        (value) => lookupMerchantBadge(value, { isQrCode: false }),
+        500
+    );
 
     function openSendModal() {
         sendInvoiceTextarea.value = '';
         if (sendAmountInput) sendAmountInput.value = '';
         sendMessageEl.textContent = '';
         sendMessageEl.className = 'send-message hidden';
+        hideMerchantBadge();
         sendModal.style.display = 'block';
         sendInvoiceTextarea.focus();
     }
@@ -690,7 +756,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('send-paste-button').addEventListener('click', async () => {
         try {
             const text = await navigator.clipboard.readText();
-            if (text) sendInvoiceTextarea.value = text.trim();
+            if (text) {
+                sendInvoiceTextarea.value = text.trim();
+                lookupMerchantBadge(sendInvoiceTextarea.value, { isQrCode: false });
+            }
         } catch (_) {
             sendMessageEl.textContent = 'Could not read clipboard.';
             sendMessageEl.className = 'send-message error';
@@ -698,12 +767,66 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
     sendPayButton.addEventListener('click', payFromSendModal);
+    sendInvoiceTextarea.addEventListener('input', () => {
+        const value = sendInvoiceTextarea.value.trim();
+        if (!value) {
+            hideMerchantBadge();
+            return;
+        }
+        debouncedLookupMerchantBadge(value);
+    });
     sendInvoiceTextarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             payFromSendModal();
         }
     });
+
+    // QR scan flow (send side) — scanning lets the Branta lookup use getPaymentsByQrCode,
+    // which correctly handles multi-value ZK QR payloads that a plain paste can't carry.
+    const qrScanModal = document.getElementById('qr-scan-modal');
+    const qrScanVideo = document.getElementById('qr-scan-video');
+    const qrScanMessage = document.getElementById('qr-scan-message');
+    const closeQrScanModalButton = document.getElementById('close-qr-scan-modal');
+
+    function stopSendQrScanner() {
+        if (sendQrScanner) {
+            sendQrScanner.stop();
+            sendQrScanner.destroy();
+            sendQrScanner = null;
+        }
+    }
+
+    function closeQrScanModal() {
+        stopSendQrScanner();
+        qrScanModal.style.display = 'none';
+    }
+
+    async function openQrScanModal() {
+        qrScanMessage.textContent = '';
+        qrScanMessage.className = 'send-message hidden';
+        qrScanModal.style.display = 'block';
+        try {
+            sendQrScanner = new QrScanner(
+                qrScanVideo,
+                (result) => {
+                    const data = (typeof result === 'string' ? result : result.data).trim();
+                    closeQrScanModal();
+                    sendInvoiceTextarea.value = data;
+                    lookupMerchantBadge(data, { isQrCode: true });
+                },
+                { highlightScanRegion: true, highlightCodeOutline: true }
+            );
+            await sendQrScanner.start();
+        } catch (error) {
+            qrScanMessage.textContent = error.message || 'Could not access camera.';
+            qrScanMessage.className = 'send-message error';
+            qrScanMessage.classList.remove('hidden');
+        }
+    }
+
+    sendScanButton.addEventListener('click', openQrScanModal);
+    closeQrScanModalButton.addEventListener('click', closeQrScanModal);
 
     function stopInvoicePolling() {
         if (invoicePollingIntervalId !== null) {
