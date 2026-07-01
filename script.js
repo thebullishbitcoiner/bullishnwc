@@ -38,6 +38,10 @@ const brantaService = new BrantaService({
     privacy: 'strict',
 });
 
+function formatSats(n) {
+    return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '<span class="thou-sep"></span>');
+}
+
 /** Active QR scanner instance for the send flow (created lazily, torn down on close). */
 let sendQrScanner = null;
 
@@ -144,19 +148,23 @@ document.addEventListener("DOMContentLoaded", () => {
     function showTransactionDetail(tx) {
         const list = transactionDetailList;
         list.innerHTML = '';
-        const add = (label, value) => {
+        const add = (label, value, html = false) => {
             if (value === undefined || value === null || value === '') return;
             const dt = document.createElement('dt');
             dt.textContent = label;
             const dd = document.createElement('dd');
-            dd.textContent = typeof value === 'object' ? JSON.stringify(value) : String(value);
+            if (html) {
+                dd.innerHTML = String(value);
+            } else {
+                dd.textContent = typeof value === 'object' ? JSON.stringify(value) : String(value);
+            }
             list.appendChild(dt);
             list.appendChild(dd);
         };
         add('Type', tx.type);
         add('State', tx.state);
-        add('Amount', `${tx.amount / 1000} sats`);
-        if (tx.fees_paid != null && tx.fees_paid > 0) add('Fees paid', `${tx.fees_paid / 1000} sats`);
+        add('Amount', `${formatSats(tx.amount / 1000)} sats`, true);
+        if (tx.fees_paid != null && tx.fees_paid > 0) add('Fees paid', `${formatSats(tx.fees_paid / 1000)} sats`, true);
         add('Description', tx.description);
         if (tx.description_hash) add('Description hash', tx.description_hash);
         add('Payment hash', tx.payment_hash);
@@ -538,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     loadTransactions(connection);
                     if (notification.notification_type === "payment_received") {
                         const sats = Math.floor(notification.notification.amount / 1000);
-                        showPaymentToast(`Payment received: ${sats} sats`);
+                        showPaymentToast(`Payment received: ${formatSats(sats)} sats`);
                         const invoiceTextarea = document.getElementById('invoice-textarea');
                         if (invoiceTextarea && invoiceTextarea.value) invoiceTextarea.value += ' ✓ Paid';
                         const waitingEl = document.getElementById('invoice-waiting');
@@ -570,7 +578,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const balance = Math.floor(balanceResponse.balance / 1000);
             balanceDiv.innerHTML = `
                 <div class="balance-card">
-                    <span class="balance-card__amount">${balance}</span>
+                    <span class="balance-card__amount">${formatSats(balance)}</span>
                     <span class="balance-card__unit">sats</span>
                 </div>
             `;
@@ -615,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 transactionDiv.className = `transaction-row ${directionClass}`;
                 transactionDiv.innerHTML = `
                     <div class="transaction-row__main">
-                        <span class="transaction-row__direction">${arrow} ${amountSats} sats</span>
+                        <span class="transaction-row__direction">${arrow} ${formatSats(amountSats)} sats</span>
                         <span class="transaction-row__time">${timeString}</span>
                     </div>
                     ${description ? `<div class="transaction-row__description" title="${escapeHtml(description)}">${escapeHtml(description)}</div>` : ''}
@@ -691,7 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showConfirmPanel(invoicePr, sats, description) {
         pendingInvoice = invoicePr;
-        confirmAmountValue.innerHTML = sats > 0 ? String(sats).replace(/\B(?=(\d{3})+(?!\d))/g, '<span class="thou-sep"></span>') : '—';
+        confirmAmountValue.innerHTML = sats > 0 ? formatSats(sats) : '—';
         if (description) {
             confirmDescription.textContent = description;
             confirmDescription.classList.remove('hidden');
@@ -1018,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (waitingEl) waitingEl.classList.add('hidden');
                 loadBalance(connection).catch(() => {});
                 loadTransactions(connection).catch(() => {});
-                showPaymentToast(`Payment received: ${amountSats} sats`, paymentHash);
+                showPaymentToast(`Payment received: ${formatSats(amountSats)} sats`, paymentHash);
                 if (invoiceTextareaRef) invoiceTextareaRef.value = invoice + ' ✓ Paid';
                 // Close the invoice modal after a short delay so the toast is visible
                 setTimeout(() => {
