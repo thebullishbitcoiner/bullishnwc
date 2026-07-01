@@ -388,22 +388,42 @@ li:hover {
 #button-container button {
     flex: 1;
     margin: 0;
-    padding: 14px;
+    padding: 10px;
     font-size: 1rem;
     line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
+    text-transform: uppercase;
 }
 
 #scan-button {
-    flex: 0 0 44px !important;
-    width: 44px !important;
+    flex: 0 0 calc(1.4rem + 20px) !important;
+    width: calc(1.4rem + 20px) !important;
+    padding: 5px !important;
+    border-radius: 0 !important;
+    margin-inline: -4px;
 }
 
-#scan-button i {
-    transform: scale(1.4);
+#send-button {
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+#receive-button {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.btn-icon {
+    width: 1.4em;
+    height: 1.4em;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.btn-icon--lg {
+    width: calc(1.4rem + 10px);
+    height: calc(1.4rem + 10px);
 }
 
 #transactions-container {
@@ -411,7 +431,6 @@ li:hover {
     overflow-y: auto;
     border: var(--border);
     padding: var(--space-md);
-    margin-top: var(--space-md);
     background-color: var(--color-surface-elevated);
     border-radius: var(--radius-sm);
 }
@@ -721,6 +740,7 @@ li:hover {
 }
 
 .modal-content {
+    position: relative;
     background-color: var(--color-surface);
     margin: 10% auto;
     padding: var(--space-xl);
@@ -735,6 +755,7 @@ li:hover {
 
 .modal-content h2 {
     margin-top: 0;
+    margin-bottom: var(--space-md);
 }
 
 .modal-content--narrow,
@@ -742,12 +763,44 @@ li:hover {
     max-width: 350px;
 }
 
+#add-connection-modal .modal-content,
+#edit-connection-modal .modal-content,
+#receive-modal .modal-content {
+    min-height: 460px;
+}
+
+#add-connection-modal .add-container,
+#edit-connection-modal .add-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+}
+
+#add-connection-modal #wallet-url,
+#edit-connection-modal #edit-wallet-url {
+    flex: 1;
+    resize: none;
+}
+
+#receive-modal .add-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+}
+
+#receive-modal #receive-create-invoice {
+    margin-top: auto;
+}
+
 .close-button {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-xl);
     color: var(--color-text);
-    float: right;
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
     cursor: pointer;
+    line-height: 1;
 }
 
 .close-button:hover {
@@ -1041,16 +1094,6 @@ body [class*="notyf"] .notyf__toast--success {
 }
 
 /* Send modal — two-panel layout */
-#send-modal .modal-content {
-    position: relative;
-}
-
-#send-modal .close-button {
-    position: absolute;
-    top: var(--space-xl);
-    right: var(--space-xl);
-    float: none;
-}
 
 #send-panels {
     min-height: 420px;

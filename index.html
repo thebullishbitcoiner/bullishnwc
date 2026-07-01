@@ -41,7 +41,7 @@
 
             <!-- Add Connection modal (name + URL inputs) -->
             <div id="add-connection-modal" class="modal hidden">
-                <div class="modal-content">
+                <div class="modal-content modal-content--narrow">
                     <span class="close-button" id="close-add-modal" aria-label="Close">&times;</span>
                     <h2>Add Connection</h2>
                     <div class="add-container">
@@ -86,9 +86,9 @@
                 </div>
                 <div id="balance"></div>
                 <div id="button-container">
-                    <button id="send-button"><i class="fas fa-arrow-up" aria-hidden="true"></i> Send</button>
-                    <button id="scan-button" aria-label="Scan QR code"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
-                    <button id="receive-button"><i class="fas fa-arrow-down" aria-hidden="true"></i> Receive</button>
+                    <button id="send-button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.00003 15.7468V18C5.00003 18.5523 5.44775 19 6.00003 19H12H18C18.5523 19 19 18.5523 19 18V15.7468" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.2023 5.91651L12.2023 14.4165" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.546 8.26682L12.2021 5L8.8583 8.26682" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg> Send</button>
+                    <button id="scan-button" aria-label="Scan QR code"><svg class="btn-icon btn-icon--lg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5.5" y="15" width="3.5" height="3.5" stroke="currentColor" stroke-linejoin="round"/><rect x="15" y="5.5" width="3.5" height="3.5" stroke="currentColor" stroke-linejoin="round"/><rect x="5.5" y="5.5" width="3.5" height="3.5" stroke="currentColor" stroke-linejoin="round"/><rect x="11.75" y="5.5" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="11.75" y="8.625" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="8.625" y="11.75" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="11.75" y="14.875" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="11.75" y="18" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="5.5" y="11.75" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="11.75" y="11.75" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="14.875" y="11.75" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="18" y="11.75" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="14.875" y="14.875" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="18" y="14.875" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="14.875" y="18" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/><rect x="18" y="18" width="0.5" height="0.5" stroke="currentColor" stroke-linejoin="round"/></svg></button>
+                    <button id="receive-button"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.00004 15.7468V18C5.00004 18.5523 5.44775 19 6.00004 19H12H18C18.5523 19 19 18.5523 19 18V15.7468" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.2023 13.5L12.2023 5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.546 11.1497L12.2021 14.4165L8.85831 11.1497" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg> Receive</button>
                 </div>
                 <h3>Transactions</h3>
                 <div id="transactions-container">
@@ -212,7 +212,7 @@
                         <label for="receive-amount">Amount (sats)</label>
                         <input type="number" id="receive-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
                         <label for="receive-description">Description (optional)</label>
-                        <input type="text" id="receive-description" placeholder="What's this for?">
+                        <textarea id="receive-description" placeholder="What's this for?" rows="3"></textarea>
                         <button id="receive-create-invoice" class="btn-primary">Create invoice</button>
                     </div>
                 </div>
