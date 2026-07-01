@@ -389,10 +389,20 @@ li:hover {
     margin: 0;
     padding: 14px;
     font-size: 1rem;
+    line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
+}
+
+#scan-button {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+}
+
+#scan-button i {
+    transform: scale(1.4);
 }
 
 #transactions-container {
@@ -767,15 +777,15 @@ li:hover {
 }
 
 .input-with-icon textarea {
-    padding-right: 70px;
+    padding-right: 40px;
     display: block;
     border-radius: var(--radius-sm);
 }
 
-#send-paste-button.paste-icon-button,
-#send-scan-button.scan-icon-button {
+#send-paste-button.paste-icon-button {
     position: absolute;
     top: var(--space-sm);
+    right: var(--space-sm);
     width: auto;
     min-width: auto;
     margin: 0;
@@ -788,29 +798,22 @@ li:hover {
     font-size: 16px;
 }
 
-#send-paste-button.paste-icon-button {
-    right: var(--space-sm);
-}
-
-#send-scan-button.scan-icon-button {
-    right: 34px;
-}
-
-#send-paste-button.paste-icon-button:hover,
-#send-scan-button.scan-icon-button:hover {
+#send-paste-button.paste-icon-button:hover {
     color: var(--color-primary);
 }
 
-#send-paste-button.paste-icon-button:focus-visible,
-#send-scan-button.scan-icon-button:focus-visible {
+#send-paste-button.paste-icon-button:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
 }
 
 .merchant-badge:not(.hidden) {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: center;
     gap: var(--space-sm);
+    text-align: center;
     margin-top: var(--space-md);
     padding: var(--space-sm) var(--space-md);
     background: var(--color-surface-elevated);
@@ -840,8 +843,6 @@ li:hover {
 .merchant-badge__info {
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    flex: 1;
 }
 
 .merchant-badge__name {
@@ -858,12 +859,6 @@ li:hover {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.merchant-badge__check {
-    color: var(--color-success);
-    font-size: 16px;
-    flex-shrink: 0;
 }
 
 .qr-scan-video-container {
@@ -1144,6 +1139,11 @@ body [class*="notyf"] .notyf__toast--success {
     color: var(--color-text);
 }
 
+.thou-sep {
+    display: inline-block;
+    width: 0.2em;
+}
+
 .confirm-amount-unit {
     font-size: 16px;
     color: var(--color-text-muted);
@@ -1155,9 +1155,7 @@ body [class*="notyf"] .notyf__toast--success {
     color: var(--color-text-muted);
     font-size: 14px;
     margin: 0 0 var(--space-md);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0 var(--space-xl);
 }
 
 /* Slide to send */

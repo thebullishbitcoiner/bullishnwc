@@ -1,4 +1,4 @@
-import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
+﻿import { nwc } from "https://esm.sh/@getalby/sdk@3.9.0";
 import { LightningAddress } from "https://esm.sh/@getalby/lightning-tools@6.1.0/lnurl";
 import { Notyf } from "https://esm.sh/notyf@3";
 import { BrantaServerBaseUrl } from "https://esm.sh/@branta-ops/branta@3.1.4";
@@ -636,7 +636,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sendAmountInput = document.getElementById('send-amount');
     const sendMessageEl = document.getElementById('send-message');
     const sendPayButton = document.getElementById('send-pay-button');
-    const sendScanButton = document.getElementById('send-scan-button');
     const sendBackButton = document.getElementById('send-back-button');
     const merchantBadge = document.getElementById('send-merchant-badge');
     const merchantBadgeLogo = document.getElementById('send-merchant-badge-logo');
@@ -692,7 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showConfirmPanel(invoicePr, sats, description) {
         pendingInvoice = invoicePr;
-        confirmAmountValue.textContent = sats > 0 ? String(sats).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '—';
+        confirmAmountValue.innerHTML = sats > 0 ? String(sats).replace(/\B(?=(\d{3})+(?!\d))/g, '<span class="thou-sep"></span>') : '—';
         if (description) {
             confirmDescription.textContent = description;
             confirmDescription.classList.remove('hidden');
@@ -945,8 +944,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    sendScanButton.addEventListener('click', openQrScanModal);
     closeQrScanModalButton.addEventListener('click', closeQrScanModal);
+
+    document.getElementById('scan-button').addEventListener('click', () => {
+        openSendModal();
+        openQrScanModal();
+    });
 
     function stopInvoicePolling() {
         if (invoicePollingIntervalId !== null) {
