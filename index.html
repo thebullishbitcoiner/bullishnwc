@@ -140,25 +140,54 @@
             <div id="send-modal" class="modal hidden">
                 <div class="modal-content modal-content--narrow">
                     <span class="close-button" id="close-send-modal" aria-label="Close">&times;</span>
-                    <h2>Send</h2>
-                    <div class="add-container">
-                        <div class="input-with-icon">
-                            <textarea id="send-invoice" placeholder="Paste lightning invoice or lightning address (e.g. user@domain.com)" rows="5"></textarea>
-                            <button type="button" id="send-scan-button" class="scan-icon-button" title="Scan QR code" aria-label="Scan QR code"><i class="fas fa-qrcode"></i></button>
-                            <button type="button" id="send-paste-button" class="paste-icon-button" title="Paste from clipboard" aria-label="Paste from clipboard"><i class="fas fa-paste"></i></button>
+                    <div id="send-panels">
+
+                        <!-- Input panel -->
+                        <div id="send-input-panel">
+                            <h2>Send</h2>
+                            <div class="add-container">
+                                <div class="input-with-icon">
+                                    <textarea id="send-invoice" placeholder="Paste lightning invoice or lightning address (e.g. user@domain.com)"></textarea>
+                                    <button type="button" id="send-scan-button" class="scan-icon-button" title="Scan QR code" aria-label="Scan QR code"><i class="fas fa-qrcode"></i></button>
+                                    <button type="button" id="send-paste-button" class="paste-icon-button" title="Paste from clipboard" aria-label="Paste from clipboard"><i class="fas fa-paste"></i></button>
+                                </div>
+                                <label for="send-amount">Amount (sats) — required for lightning address</label>
+                                <input type="number" id="send-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
+                                <p id="send-message" class="send-message hidden"></p>
+                                <button id="send-pay-button" class="btn-primary">Review</button>
+                            </div>
                         </div>
-                        <a id="send-merchant-badge" class="merchant-badge hidden" target="_blank" rel="noopener noreferrer">
-                            <img id="send-merchant-badge-logo" class="merchant-badge__logo" alt="">
-                            <span class="merchant-badge__info">
-                                <span id="send-merchant-badge-name" class="merchant-badge__name"></span>
-                                <span id="send-merchant-badge-desc" class="merchant-badge__desc"></span>
-                            </span>
-                            <i class="fas fa-circle-check merchant-badge__check" aria-hidden="true"></i>
-                        </a>
-                        <label for="send-amount">Amount (sats) — required for lightning address</label>
-                        <input type="number" id="send-amount" placeholder="e.g. 1000" min="1" step="1" inputmode="numeric">
-                        <p id="send-message" class="send-message hidden"></p>
-                        <button id="send-pay-button" class="btn-primary">Pay</button>
+
+                        <!-- Confirm panel -->
+                        <div id="send-confirm-panel">
+                            <div class="confirm-header">
+                                <button type="button" id="send-back-button" class="send-back-button" aria-label="Back"><i class="fas fa-arrow-left"></i></button>
+                                <h2>Confirm</h2>
+                            </div>
+                            <div class="confirm-amount-display">
+                                <span class="confirm-amount-value" id="confirm-amount-value">0</span>
+                                <span class="confirm-amount-unit">sats</span>
+                            </div>
+                            <p class="confirm-description hidden" id="confirm-description"></p>
+                            <a id="send-merchant-badge" class="merchant-badge hidden" target="_blank" rel="noopener noreferrer">
+                                <img id="send-merchant-badge-logo" class="merchant-badge__logo" alt="">
+                                <span class="merchant-badge__info">
+                                    <span id="send-merchant-badge-name" class="merchant-badge__name"></span>
+                                    <span id="send-merchant-badge-desc" class="merchant-badge__desc"></span>
+                                </span>
+                                <i class="fas fa-circle-check merchant-badge__check" aria-hidden="true"></i>
+                            </a>
+                            <p id="confirm-message" class="send-message hidden"></p>
+                            <div class="slide-to-send">
+                                <div class="slide-track" id="slide-track">
+                                    <span class="slide-label" id="slide-label">Slide to send</span>
+                                    <div class="slide-thumb" id="slide-thumb">
+                                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { Notyf } from "https://esm.sh/notyf@3";
 import { BrantaServerBaseUrl } from "https://esm.sh/@branta-ops/branta@3.1.4";
 import { BrantaService } from "https://esm.sh/@branta-ops/branta@3.1.4/v2";
 import QrScanner from "https://esm.sh/qr-scanner@1.4.2";
+import { decode as decodeBolt11 } from "https://esm.sh/light-bolt11-decoder@3.2.0";
 
 const notyf = new Notyf({
     duration: 4000,
@@ -33,7 +34,7 @@ let lastPaymentToastAt = 0;
 let lastTransactions = [];
 
 const brantaService = new BrantaService({
-    baseUrl: import.meta.env?.DEV ? BrantaServerBaseUrl.Staging : BrantaServerBaseUrl.Production,
+    baseUrl: BrantaServerBaseUrl.Production,
     privacy: 'strict',
 });
 
@@ -629,24 +630,27 @@ document.addEventListener("DOMContentLoaded", () => {
     } // End loadTransactions()
 
     const sendModal = document.getElementById('send-modal');
+    const sendPanels = document.getElementById('send-panels');
     const closeSendModalButton = document.getElementById('close-send-modal');
     const sendInvoiceTextarea = document.getElementById('send-invoice');
     const sendAmountInput = document.getElementById('send-amount');
     const sendMessageEl = document.getElementById('send-message');
     const sendPayButton = document.getElementById('send-pay-button');
     const sendScanButton = document.getElementById('send-scan-button');
+    const sendBackButton = document.getElementById('send-back-button');
     const merchantBadge = document.getElementById('send-merchant-badge');
     const merchantBadgeLogo = document.getElementById('send-merchant-badge-logo');
     const merchantBadgeName = document.getElementById('send-merchant-badge-name');
     const merchantBadgeDesc = document.getElementById('send-merchant-badge-desc');
+    const confirmAmountValue = document.getElementById('confirm-amount-value');
+    const confirmDescription = document.getElementById('confirm-description');
+    const confirmMessage = document.getElementById('confirm-message');
 
-    function debounce(fn, delay) {
-        let timeoutId;
-        return (...args) => {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => fn(...args), delay);
-        };
-    }
+    /** Invoice ready to pay; set when confirm panel is shown. */
+    let pendingInvoice = null;
+    let slideIsDragging = false;
+    let slideStartX = 0;
+    let slideCurrentX = 0;
 
     function hideMerchantBadge() {
         merchantBadge.classList.add('hidden');
@@ -657,20 +661,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function lookupMerchantBadge(value, { isQrCode }) {
-        if (!value) {
-            hideMerchantBadge();
-            return;
-        }
+        if (!value) { hideMerchantBadge(); return; }
         try {
             const result = isQrCode
                 ? await brantaService.getPaymentsByQrCode(value)
                 : await brantaService.getPayments(value);
-
             if (!result || !Array.isArray(result.payments) || result.payments.length === 0) {
-                hideMerchantBadge();
-                return;
+                hideMerchantBadge(); return;
             }
-
             const payment = result.payments[0];
             merchantBadgeLogo.src = payment.platformLogoUrl;
             merchantBadgeName.textContent = payment.platform || '';
@@ -679,86 +677,225 @@ document.addEventListener("DOMContentLoaded", () => {
             merchantBadge.href = result.verifyUrl;
             merchantBadge.classList.remove('hidden');
         } catch (_) {
-            // Empty/error result just means the destination is unknown to Branta, not malicious — show nothing.
             hideMerchantBadge();
         }
     }
 
-    const debouncedLookupMerchantBadge = debounce(
-        (value) => lookupMerchantBadge(value, { isQrCode: false }),
-        500
-    );
+    function resetSlider() {
+        const thumb = document.getElementById('slide-thumb');
+        const label = document.getElementById('slide-label');
+        slideCurrentX = 0;
+        slideIsDragging = false;
+        if (thumb) { thumb.style.transition = 'none'; thumb.style.left = '0'; thumb.style.pointerEvents = ''; }
+        if (label) { label.style.opacity = '1'; }
+    }
+
+    function showConfirmPanel(invoicePr, sats, description) {
+        pendingInvoice = invoicePr;
+        confirmAmountValue.textContent = sats > 0 ? String(sats).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '—';
+        if (description) {
+            confirmDescription.textContent = description;
+            confirmDescription.classList.remove('hidden');
+        } else {
+            confirmDescription.textContent = '';
+            confirmDescription.classList.add('hidden');
+        }
+        confirmMessage.textContent = '';
+        confirmMessage.className = 'send-message hidden';
+        hideMerchantBadge();
+        resetSlider();
+        sendPanels.classList.add('confirm-active');
+    }
+
+    function showInputPanel() {
+        sendPanels.classList.remove('confirm-active');
+        pendingInvoice = null;
+        hideMerchantBadge();
+        resetSlider();
+    }
 
     function openSendModal() {
         sendInvoiceTextarea.value = '';
         if (sendAmountInput) sendAmountInput.value = '';
         sendMessageEl.textContent = '';
         sendMessageEl.className = 'send-message hidden';
-        hideMerchantBadge();
+        showInputPanel();
         sendModal.style.display = 'block';
         sendInvoiceTextarea.focus();
     }
 
     function closeSendModal() {
         sendModal.style.display = 'none';
+        showInputPanel();
     }
 
-    async function payFromSendModal() {
+    /** Decode a BOLT11 invoice and return { sats, description }. */
+    function decodeInvoice(pr) {
+        const decoded = decodeBolt11(pr);
+        const amtSection = decoded.sections.find(s => s.name === 'amount');
+        const descSection = decoded.sections.find(s => s.name === 'description');
+        const sats = amtSection ? Math.floor(Number(amtSection.value) / 1000) : 0;
+        const description = descSection ? String(descSection.value) : '';
+        return { sats, description };
+    }
+
+    /** Navigate to the confirm panel for a known invoice string. */
+    async function navigateToConfirm(invoice, { isQrCode }) {
+        sendMessageEl.className = 'send-message hidden';
+        try {
+            const { sats, description } = decodeInvoice(invoice);
+            showConfirmPanel(invoice, sats, description);
+            lookupMerchantBadge(invoice, { isQrCode });
+        } catch (_) {
+            sendMessageEl.textContent = 'Could not decode invoice.';
+            sendMessageEl.className = 'send-message error';
+            sendMessageEl.classList.remove('hidden');
+        }
+    }
+
+    /** Called when the Review button is clicked (or Enter pressed) for LN address or unrecognised input. */
+    async function reviewPayment() {
         const value = sendInvoiceTextarea.value.trim();
         if (!value) {
-            sendMessageEl.textContent = 'Please paste a lightning invoice or lightning address.';
+            sendMessageEl.textContent = 'Paste a lightning invoice or lightning address.';
             sendMessageEl.className = 'send-message error';
             sendMessageEl.classList.remove('hidden');
             return;
         }
-        sendMessageEl.textContent = '';
-        sendMessageEl.classList.remove('hidden');
-        sendPayButton.disabled = true;
-        try {
-            let invoiceToPay;
-            if (/^ln/i.test(value)) {
-                invoiceToPay = value;
-            } else if (value.includes('@')) {
-                const amountRaw = sendAmountInput ? sendAmountInput.value.trim() : '';
-                const amount = amountRaw ? parseInt(amountRaw, 10) : NaN;
-                if (!amountRaw || !Number.isInteger(amount) || amount < 1) {
-                    sendMessageEl.textContent = 'Amount (sats) is required for lightning address.';
-                    sendMessageEl.className = 'send-message error';
-                    sendPayButton.disabled = false;
-                    return;
-                }
+        if (/^ln/i.test(value)) {
+            await navigateToConfirm(value, { isQrCode: false });
+            return;
+        }
+        if (value.includes('@')) {
+            const amountRaw = sendAmountInput ? sendAmountInput.value.trim() : '';
+            const amount = parseInt(amountRaw, 10);
+            if (!amountRaw || !Number.isInteger(amount) || amount < 1) {
+                sendMessageEl.textContent = 'Amount (sats) is required for lightning address.';
+                sendMessageEl.className = 'send-message error';
+                sendMessageEl.classList.remove('hidden');
+                return;
+            }
+            sendPayButton.disabled = true;
+            sendPayButton.textContent = 'Loading…';
+            try {
                 const ln = new LightningAddress(value);
                 await ln.fetch();
                 const inv = await ln.requestInvoice({ satoshi: amount });
-                invoiceToPay = inv.paymentRequest;
-            } else {
-                sendMessageEl.textContent = 'Enter a lightning invoice (starts with ln...) or lightning address (e.g. user@domain.com).';
+                const pr = inv.paymentRequest;
+                let description = '';
+                try { description = decodeInvoice(pr).description; } catch (_) {}
+                showConfirmPanel(pr, amount, description);
+                lookupMerchantBadge(value, { isQrCode: false });
+            } catch (err) {
+                sendMessageEl.textContent = err.message || 'Could not fetch invoice.';
                 sendMessageEl.className = 'send-message error';
+                sendMessageEl.classList.remove('hidden');
+            } finally {
                 sendPayButton.disabled = false;
-                return;
+                sendPayButton.textContent = 'Review';
             }
-            await currentConnection.payInvoice({ invoice: invoiceToPay });
-            sendMessageEl.textContent = 'Payment sent.';
-            sendMessageEl.className = 'send-message success';
+            return;
+        }
+        sendMessageEl.textContent = 'Enter a lightning invoice (ln…) or lightning address (user@domain.com).';
+        sendMessageEl.className = 'send-message error';
+        sendMessageEl.classList.remove('hidden');
+    }
+
+    /** Execute the pending payment — triggered when slide-to-send completes. */
+    async function executePayment() {
+        if (!pendingInvoice) return;
+        const thumb = document.getElementById('slide-thumb');
+        if (thumb) thumb.style.pointerEvents = 'none';
+        try {
+            await currentConnection.payInvoice({ invoice: pendingInvoice });
+            notyf.success('Payment sent!');
             await loadBalance(currentConnection);
             await loadTransactions(currentConnection);
-            setTimeout(closeSendModal, 1200);
+            closeSendModal();
         } catch (error) {
-            sendMessageEl.textContent = error.message || 'Payment failed.';
-            sendMessageEl.className = 'send-message error';
-        } finally {
-            sendPayButton.disabled = false;
+            confirmMessage.textContent = error.message || 'Payment failed.';
+            confirmMessage.className = 'send-message error';
+            confirmMessage.classList.remove('hidden');
+            resetSlider();
         }
     }
 
+    /** Wire up slide-to-send drag gesture (called once). */
+    function initSlideToSend() {
+        const track = document.getElementById('slide-track');
+        const thumb = document.getElementById('slide-thumb');
+        const label = document.getElementById('slide-label');
+
+        function maxX() { return track.offsetWidth - thumb.offsetWidth; }
+
+        function onStart(e) {
+            if (!pendingInvoice) return;
+            slideIsDragging = true;
+            slideStartX = e.touches ? e.touches[0].clientX : e.clientX;
+            thumb.style.transition = 'none';
+        }
+
+        function onMove(e) {
+            if (!slideIsDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            slideCurrentX = Math.max(0, Math.min(clientX - slideStartX, maxX()));
+            thumb.style.left = slideCurrentX + 'px';
+            if (label) label.style.opacity = String(Math.max(0, 1 - slideCurrentX / (maxX() * 0.6)));
+        }
+
+        function onEnd() {
+            if (!slideIsDragging) return;
+            slideIsDragging = false;
+            if (slideCurrentX >= maxX() * 0.85) {
+                thumb.style.transition = 'left 0.15s ease';
+                thumb.style.left = maxX() + 'px';
+                setTimeout(executePayment, 150);
+            } else {
+                thumb.style.transition = 'left 0.25s ease';
+                thumb.style.left = '0';
+                slideCurrentX = 0;
+                if (label) {
+                    label.style.transition = 'opacity 0.25s ease';
+                    label.style.opacity = '1';
+                    setTimeout(() => { label.style.transition = ''; }, 250);
+                }
+            }
+        }
+
+        thumb.addEventListener('mousedown', onStart);
+        thumb.addEventListener('touchstart', onStart, { passive: true });
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove, { passive: true });
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchend', onEnd);
+    }
+
+    initSlideToSend();
+
     document.getElementById('send-button').addEventListener('click', openSendModal);
     closeSendModalButton.addEventListener('click', closeSendModal);
+    sendBackButton.addEventListener('click', () => { showInputPanel(); sendInvoiceTextarea.focus(); });
+    sendPayButton.addEventListener('click', reviewPayment);
+    sendInvoiceTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); reviewPayment(); }
+    });
+    sendInvoiceTextarea.addEventListener('paste', () => {
+        // paste fires before text is inserted — wait one tick then check
+        setTimeout(async () => {
+            const value = sendInvoiceTextarea.value.trim().replace(/^lightning:/i, '');
+            sendInvoiceTextarea.value = value;
+            if (/^ln/i.test(value)) await navigateToConfirm(value, { isQrCode: false });
+        }, 0);
+    });
+
     document.getElementById('send-paste-button').addEventListener('click', async () => {
         try {
             const text = await navigator.clipboard.readText();
-            if (text) {
-                sendInvoiceTextarea.value = text.trim();
-                lookupMerchantBadge(sendInvoiceTextarea.value, { isQrCode: false });
+            if (!text) return;
+            const trimmed = text.trim().replace(/^lightning:/i, '');
+            sendInvoiceTextarea.value = trimmed;
+            if (/^ln/i.test(trimmed)) {
+                await navigateToConfirm(trimmed, { isQrCode: false });
             }
         } catch (_) {
             sendMessageEl.textContent = 'Could not read clipboard.';
@@ -766,35 +903,15 @@ document.addEventListener("DOMContentLoaded", () => {
             sendMessageEl.classList.remove('hidden');
         }
     });
-    sendPayButton.addEventListener('click', payFromSendModal);
-    sendInvoiceTextarea.addEventListener('input', () => {
-        const value = sendInvoiceTextarea.value.trim();
-        if (!value) {
-            hideMerchantBadge();
-            return;
-        }
-        debouncedLookupMerchantBadge(value);
-    });
-    sendInvoiceTextarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            payFromSendModal();
-        }
-    });
 
-    // QR scan flow (send side) — scanning lets the Branta lookup use getPaymentsByQrCode,
-    // which correctly handles multi-value ZK QR payloads that a plain paste can't carry.
+    // QR scan flow — getPaymentsByQrCode handles ZK multi-value QR payloads.
     const qrScanModal = document.getElementById('qr-scan-modal');
     const qrScanVideo = document.getElementById('qr-scan-video');
     const qrScanMessage = document.getElementById('qr-scan-message');
     const closeQrScanModalButton = document.getElementById('close-qr-scan-modal');
 
     function stopSendQrScanner() {
-        if (sendQrScanner) {
-            sendQrScanner.stop();
-            sendQrScanner.destroy();
-            sendQrScanner = null;
-        }
+        if (sendQrScanner) { sendQrScanner.stop(); sendQrScanner.destroy(); sendQrScanner = null; }
     }
 
     function closeQrScanModal() {
@@ -809,11 +926,14 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             sendQrScanner = new QrScanner(
                 qrScanVideo,
-                (result) => {
-                    const data = (typeof result === 'string' ? result : result.data).trim();
+                async (result) => {
+                    const raw = (typeof result === 'string' ? result : result.data).trim();
+                    const data = raw.replace(/^lightning:/i, '');
                     closeQrScanModal();
                     sendInvoiceTextarea.value = data;
-                    lookupMerchantBadge(data, { isQrCode: true });
+                    if (/^ln/i.test(data)) {
+                        await navigateToConfirm(data, { isQrCode: true });
+                    }
                 },
                 { highlightScanRegion: true, highlightCodeOutline: true }
             );

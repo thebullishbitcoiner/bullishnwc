@@ -1041,6 +1041,175 @@ body [class*="notyf"] .notyf__toast--success {
     color: var(--color-success);
 }
 
+/* Send modal — two-panel layout */
+#send-modal .modal-content {
+    position: relative;
+}
+
+#send-modal .close-button {
+    position: absolute;
+    top: var(--space-xl);
+    right: var(--space-xl);
+    float: none;
+}
+
+#send-panels {
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+#send-input-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#send-input-panel .add-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#send-input-panel .input-with-icon {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#send-input-panel .input-with-icon textarea {
+    flex: 1;
+    resize: none;
+}
+
+#send-pay-button {
+    margin-top: auto;
+}
+
+#send-confirm-panel {
+    display: none;
+}
+
+#send-panels.confirm-active #send-input-panel {
+    display: none;
+}
+
+#send-panels.confirm-active #send-confirm-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.confirm-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.confirm-header h2 {
+    margin: 0;
+}
+
+.send-back-button {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    width: auto;
+    min-width: auto;
+    line-height: 1;
+}
+
+.send-back-button:hover {
+    color: var(--color-primary);
+}
+
+.send-back-button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.confirm-amount-display {
+    text-align: center;
+    padding: var(--space-xl) 0 var(--space-md);
+}
+
+.confirm-amount-value {
+    font-size: 42px;
+    font-family: monospace;
+    font-weight: bold;
+    color: var(--color-text);
+}
+
+.confirm-amount-unit {
+    font-size: 16px;
+    color: var(--color-text-muted);
+    margin-left: 6px;
+}
+
+.confirm-description {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    margin: 0 0 var(--space-md);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Slide to send */
+.slide-to-send {
+    margin-top: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.slide-track {
+    position: relative;
+    height: 52px;
+    background: var(--color-surface-elevated);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.slide-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-family: monospace;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.slide-thumb {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 44px;
+    height: 44px;
+    background: var(--color-primary);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-size: 16px;
+    cursor: grab;
+    touch-action: none;
+}
+
+.slide-thumb:active {
+    cursor: grabbing;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     #loading .fa-spin,
